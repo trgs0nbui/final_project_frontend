@@ -16,7 +16,7 @@ export const useAuthStore = defineStore(
 
     /**
      * Login with username and password.
-     * POST /api/auth/token/ — saves accessToken, refreshToken, user to state.
+     * POST /api/auth/login/ — saves accessToken, refreshToken, user to state.
      * @param {{ username: string, password: string }} credentials
      */
     async function login(credentials) {
@@ -24,7 +24,7 @@ export const useAuthStore = defineStore(
       error.value = null
 
       try {
-        const response = await apiClient.post('/api/auth/token/', {
+        const response = await apiClient.post('/api/auth/login/', {
           username: credentials.username,
           password: credentials.password,
         })
@@ -58,7 +58,7 @@ export const useAuthStore = defineStore(
     /**
      * Register a new account, then auto-login.
      * POST /api/auth/register/ — then calls login() internally.
-     * @param {{ username: string, email: string, password: string }} userData
+     * @param {{ username: string, email: string, password: string, confirmPassword: string }} userData
      */
     async function register(userData) {
       isLoading.value = true
@@ -69,6 +69,7 @@ export const useAuthStore = defineStore(
           username: userData.username,
           email: userData.email,
           password: userData.password,
+          confirm_password: userData.confirmPassword,
         })
 
         // Auto-login after successful registration
