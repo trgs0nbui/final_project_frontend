@@ -31,35 +31,34 @@ const routes = [
     component: () => import('@/views/DashboardView.vue'),
     meta: { requiresAuth: true, title: 'Dashboard' },
   },
-  // {
-  //   path: '/projects/:id',
-  //   name: 'project-detail',
-  //   component: () => import('@/views/ProjectDetailView.vue'),
-  //   meta: { requiresAuth: true, title: 'Chi tiết dự án' },
-  //   children: [
-  //     {
-  //       path: 'tasks/:taskId',
-  //       name: 'task-detail',
-  //       // Rendered inside ProjectDetailView's <router-view>
-  //       component: () => import('@/views/ProjectDetailView.vue'),
-  //       meta: { requiresAuth: true, title: 'Chi tiết công việc' },
-  //     },
-  //   ],
-  // },
+  {
+    path: '/projects/:id',
+    name: 'project-detail',
+    component: () => import('@/views/ProjectDetailView.vue'),
+    meta: { requiresAuth: true, title: 'Chi tiết dự án' },
+    children: [
+      {
+        path: 'tasks/:taskId',
+        name: 'task-detail',
+        // Rendered inside ProjectDetailView's <router-view>
+        component: () => import('@/views/ProjectDetailView.vue'),
+        meta: { requiresAuth: true, title: 'Chi tiết công việc' },
+      },
+    ],
+  },
 
   // ── Error / fallback routes ───────────────────────────────────────────────
-  // {
-  //   path: '/404',
-  //   name: 'not-found',
-  //   // Inline placeholder until NotFoundView.vue is built in task 13
-  //   component: { template: '<div style="padding:40px;text-align:center"><h1>404</h1><p>Không tìm thấy trang</p><a href="/login">Quay về trang chủ</a></div>' },
-  //   meta: { title: 'Không tìm thấy trang' },
-  // },
-  // {
-  //   // Catch-all: redirect any unknown path to the named not-found route
-  //   path: '/:pathMatch(.*)*',
-  //   redirect: { name: 'not-found' },
-  // },
+  {
+    path: '/404',
+    name: 'not-found',
+    component: () => import('@/views/NotFoundView.vue'),
+    meta: { title: 'Không tìm thấy trang' },
+  },
+  {
+    // Catch-all: redirect any unknown path to the named not-found route
+    path: '/:pathMatch(.*)*',
+    redirect: { name: 'not-found' },
+  },
 ]
 
 const router = createRouter({
