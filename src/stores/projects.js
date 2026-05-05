@@ -89,7 +89,7 @@ export const useProjectStore = defineStore(
      * Create a new project.
      * POST /api/projects/
      * Adds the new project to the projects array.
-     * @param {{ name: string, description: string }} data - Project data
+     * @param {{ name: string, key: string, description?: string, project_type: string, category?: string }} data
      * @returns {Project | undefined} The created project, or undefined on failure
      */
     async function createProject(data) {
@@ -98,8 +98,11 @@ export const useProjectStore = defineStore(
 
       try {
         const response = await apiClient.post('/api/projects/', {
-          name: data.name,
-          description: data.description,
+          name:         data.name,
+          key:          data.key,
+          description:  data.description ?? '',
+          project_type: data.project_type,
+          category:     data.category ?? 'other',
         })
         const newProject = response.data
         projects.value.push(newProject)

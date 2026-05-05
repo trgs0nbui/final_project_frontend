@@ -25,12 +25,12 @@ const routes = [
   },
 
   // ── Protected routes ─────────────────────────────────────────────────────
-  // {
-  //   path: '/dashboard',
-  //   name: 'dashboard',
-  //   component: () => import('@/views/DashboardView.vue'),
-  //   meta: { requiresAuth: true, title: 'Dashboard' },
-  // },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true, title: 'Dashboard' },
+  },
   // {
   //   path: '/projects/:id',
   //   name: 'project-detail',

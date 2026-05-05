@@ -30,10 +30,65 @@ function processQueue(error, token = null) {
   failedQueue = []
 }
 
+/**
+ * Read a token from the Pinia-persisted auth store in localStorage.
+ *
+ * pinia-plugin-persistedstate serializes the auth store under the key "auth"
+ * as a JSON string: { accessToken, refreshToken, isAuthenticated, user }.
+ * Reading individual keys like localStorage.getItem('accessToken') will always
+ * return null because the plugin does NOT write flat keys.
+ *
+ * @param {'accessToken'|'refreshToken'} key
+ * @returns {string|null}
+ */
+function getPersistedToken(key) {
+  try {
+    const raw = localStorage.getItem('auth')
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return parsed[key] ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Persist an updated accessToken back into the "auth" key so the Pinia store
+ * stays in sync after a silent token refresh.
+ * @param {string} newToken
+ */
+function persistAccessToken(newToken) {
+  try {
+    const raw = localStorage.getItem('auth')
+    const parsed = raw ? JSON.parse(raw) : {}
+    parsed.accessToken = newToken
+    localStorage.setItem('auth', JSON.stringify(parsed))
+  } catch {
+    // Non-critical — the in-memory store will still work
+  }
+}
+
+/**
+ * Clear auth tokens from the persisted store and redirect to /login.
+ */
+function clearAuthAndRedirect() {
+  try {
+    const raw = localStorage.getItem('auth')
+    const parsed = raw ? JSON.parse(raw) : {}
+    parsed.accessToken = null
+    parsed.refreshToken = null
+    parsed.isAuthenticated = false
+    localStorage.setItem('auth', JSON.stringify(parsed))
+  } catch {
+    localStorage.removeItem('auth')
+  }
+  window.location.href = '/login'
+}
+
 // Request interceptor: attach AccessToken if available
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken')
+    const token = getPersistedToken('accessToken')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -48,10 +103,10 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // Handle 401 Unauthorized — attempt token refresh
+    // Handle 401 Unauthorized — attempt token refresh once per request
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Queue this request until the refresh completes
+        // Queue this request until the in-flight refresh completes
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         })
@@ -65,7 +120,15 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true
       isRefreshing = true
 
-      const refreshToken = localStorage.getItem('refreshToken')
+      const refreshToken = getPersistedToken('refreshToken')
+
+      // If there is no refresh token at all, bail out immediately
+      if (!refreshToken) {
+        isRefreshing = false
+        processQueue(new Error('No refresh token'), null)
+        clearAuthAndRedirect()
+        return Promise.reject(normalizeError(error))
+      }
 
       try {
         const response = await axios.post(
@@ -75,7 +138,9 @@ apiClient.interceptors.response.use(
         )
 
         const newAccessToken = response.data.access
-        localStorage.setItem('accessToken', newAccessToken)
+
+        // Write the new token back so subsequent requests pick it up
+        persistAccessToken(newAccessToken)
 
         processQueue(null, newAccessToken)
 
@@ -83,12 +148,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-
-        // Clear tokens and redirect to login
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        window.location.href = '/login'
-
+        clearAuthAndRedirect()
         return Promise.reject(normalizeError(refreshError))
       } finally {
         isRefreshing = false
