@@ -85,9 +85,9 @@ export const useTaskStore = defineStore('tasks', () => {
 
   /**
    * Update a task with full data (PUT).
-   * PUT /api/tasks/:taskId/
-   * Replaces the task in the tasks array with the updated data from the API response.
-   * @param {number} taskId - Task id
+   * PUT /api/projects/:projectId/tasks/:taskId/
+   * Looks up projectId from the task already in the store.
+   * @param {string} taskId - Task id
    * @param {Object} data - Full task data
    * @returns {Task | undefined} The updated task, or undefined on failure
    */
@@ -96,7 +96,8 @@ export const useTaskStore = defineStore('tasks', () => {
     error.value = null
 
     try {
-      const response = await apiClient.put(`/api/tasks/${taskId}/`, data)
+      const projectId = _getProjectId(taskId)
+      const response = await apiClient.put(`/api/projects/${projectId}/tasks/${taskId}/`, data)
       const updatedTask = response.data
       const index = tasks.value.findIndex((t) => t.id === taskId)
       if (index !== -1) {
@@ -112,43 +113,53 @@ export const useTaskStore = defineStore('tasks', () => {
 
   /**
    * Partially update a task (PATCH) — used for drag & drop status change.
-   * PATCH /api/tasks/:taskId/
-   * Replaces the task in the tasks array with the updated data from the API response.
-   * @param {number} taskId - Task id
+   * PATCH /api/projects/:projectId/tasks/:taskId/
+   * Uses optimistic update so the Kanban board doesn't flicker (no isLoading toggle).
+   * @param {string} taskId - Task id
    * @param {Object} data - Partial task data
    * @returns {Task | undefined} The updated task, or undefined on failure
    */
   async function patchTask(taskId, data) {
-    isLoading.value = true
+    // Optimistic update: apply immediately so UI doesn't wait for the round-trip
+    const index = tasks.value.findIndex((t) => t.id === taskId)
+    const previousTask = index !== -1 ? { ...tasks.value[index] } : null
+    if (index !== -1) {
+      tasks.value[index] = { ...tasks.value[index], ...data }
+    }
+
     error.value = null
 
     try {
-      const response = await apiClient.patch(`/api/tasks/${taskId}/`, data)
+      const projectId = _getProjectId(taskId)
+      const response = await apiClient.patch(`/api/projects/${projectId}/tasks/${taskId}/`, data)
       const updatedTask = response.data
-      const index = tasks.value.findIndex((t) => t.id === taskId)
-      if (index !== -1) {
-        tasks.value[index] = updatedTask
+      // Replace with authoritative server response
+      const idx = tasks.value.findIndex((t) => t.id === taskId)
+      if (idx !== -1) {
+        tasks.value[idx] = updatedTask
       }
       return updatedTask
     } catch (err) {
+      // Rollback on failure
+      if (previousTask !== null && index !== -1) {
+        tasks.value[index] = previousTask
+      }
       error.value = err.message || 'Không thể cập nhật công việc.'
-    } finally {
-      isLoading.value = false
     }
   }
 
   /**
    * Delete a task by id.
-   * DELETE /api/tasks/:taskId/
-   * Removes the task from the tasks array.
-   * @param {number} taskId - Task id
+   * DELETE /api/projects/:projectId/tasks/:taskId/
+   * @param {string} taskId - Task id
    */
   async function deleteTask(taskId) {
     isLoading.value = true
     error.value = null
 
     try {
-      await apiClient.delete(`/api/tasks/${taskId}/`)
+      const projectId = _getProjectId(taskId)
+      await apiClient.delete(`/api/projects/${projectId}/tasks/${taskId}/`)
       tasks.value = tasks.value.filter((t) => t.id !== taskId)
 
       // Clear currentTask if it was the deleted one
@@ -160,6 +171,22 @@ export const useTaskStore = defineStore('tasks', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
+  /**
+   * Helper: get the projectId for a given taskId from the local tasks array.
+   * The API response includes a `project` field (UUID) on every task object.
+   * @param {string} taskId
+   * @returns {string} projectId
+   * @throws {Error} if task not found in store
+   */
+  function _getProjectId(taskId) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (!task) {
+      throw new Error(`Task ${taskId} không tìm thấy trong store.`)
+    }
+    // Backend serializer returns `project` as the UUID of the project
+    return task.project
   }
 
   return {

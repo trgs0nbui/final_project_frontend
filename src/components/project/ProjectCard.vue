@@ -37,12 +37,12 @@ const formattedDate = computed(() => {
 
 /**
  * Số lượng task của dự án (nếu API trả về trường task_count hoặc tasks[]).
- * Mặc định hiển thị 0 nếu không có dữ liệu.
+ * Trả về null nếu backend không cung cấp dữ liệu — tránh hiển thị số sai.
  */
 const taskCount = computed(() => {
   if (typeof props.project.task_count === 'number') return props.project.task_count
   if (Array.isArray(props.project.tasks)) return props.project.tasks.length
-  return 0
+  return null
 })
 
 function handleCardClick() {
@@ -76,7 +76,7 @@ function handleDelete(event) {
         <div class="project-card__meta">
           <span class="project-card__task-count">
             <el-icon class="meta-icon"><i class="el-icon-tickets" /></el-icon>
-            {{ taskCount }} công việc
+            {{ taskCount !== null ? `${taskCount} công việc` : 'Chưa có dữ liệu công việc' }}
           </span>
           <span class="project-card__date">
             Tạo ngày {{ formattedDate }}
