@@ -10,19 +10,19 @@ import { useAuthStore } from '@/stores/auth'
  */
 const routes = [
   // ── Auth routes (no auth required) ──────────────────────────────────────
-  // {
-  //   path: '/login',
-  //   name: 'login',
-  //   // Login is loaded eagerly so the first paint is fast
-  //   component: () => import('@/views/auth/LoginView.vue'),
-  //   meta: { title: 'Đăng nhập' },
-  // },
-  // {
-  //   path: '/register',
-  //   name: 'register',
-  //   component: () => import('@/views/auth/RegisterView.vue'),
-  //   meta: { title: 'Đăng ký' },
-  // },
+  {
+    path: '/login',
+    name: 'login',
+    // Login is loaded eagerly so the first paint is fast
+    component: () => import('@/views/auth/LoginView.vue'),
+    meta: { title: 'Đăng nhập' },
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: () => import('@/views/auth/RegisterView.vue'),
+    meta: { title: 'Đăng ký' },
+  },
 
   // ── Protected routes ─────────────────────────────────────────────────────
   // {
@@ -47,18 +47,19 @@ const routes = [
   //   ],
   // },
 
-  // // ── Error / fallback routes ───────────────────────────────────────────────
+  // ── Error / fallback routes ───────────────────────────────────────────────
   // {
   //   path: '/404',
   //   name: 'not-found',
-  //   component: () => import('@/views/NotFoundView.vue'),
+  //   // Inline placeholder until NotFoundView.vue is built in task 13
+  //   component: { template: '<div style="padding:40px;text-align:center"><h1>404</h1><p>Không tìm thấy trang</p><a href="/login">Quay về trang chủ</a></div>' },
   //   meta: { title: 'Không tìm thấy trang' },
   // },
-  {
-    // Catch-all: redirect any unknown path to /404
-    path: '/:pathMatch(.*)*',
-    redirect: '/404',
-  },
+  // {
+  //   // Catch-all: redirect any unknown path to the named not-found route
+  //   path: '/:pathMatch(.*)*',
+  //   redirect: { name: 'not-found' },
+  // },
 ]
 
 const router = createRouter({
