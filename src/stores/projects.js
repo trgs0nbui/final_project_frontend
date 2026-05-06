@@ -98,11 +98,11 @@ export const useProjectStore = defineStore(
 
       try {
         const response = await apiClient.post('/api/projects/', {
-          name:         data.name,
-          key:          data.key,
-          description:  data.description ?? '',
+          name: data.name,
+          key: data.key,
+          description: data.description ?? '',
           project_type: data.project_type,
-          category:     data.category ?? 'other',
+          category: data.category ?? 'other',
         })
         const newProject = response.data
         projects.value.push(newProject)
@@ -139,6 +139,91 @@ export const useProjectStore = defineStore(
       }
     }
 
+    /**
+     * Fetch all members of a project.
+     * GET /api/projects/:id/members/
+     * @param {string} projectId
+     * @returns {Array} memberships array
+     */
+    async function fetchMembers(projectId) {
+      isLoading.value = true
+      error.value = null
+      try {
+        const response = await apiClient.get(`/api/projects/${projectId}/members/`)
+        const data = response.data
+        return Array.isArray(data) ? data : (data.results ?? [])
+      } catch (err) {
+        error.value = err.message || 'Không thể tải danh sách thành viên.'
+        return []
+      } finally {
+        isLoading.value = false
+      }
+    }
+
+    /**
+     * Add a member to a project (owner only).
+     * POST /api/projects/:id/members/
+     * @param {string} projectId
+     * @param {string} userId
+     * @returns {Object|null} membership object or null on failure
+     */
+    async function addMember(projectId, userId) {
+      isLoading.value = true
+      error.value = null
+      try {
+        const response = await apiClient.post(`/api/projects/${projectId}/members/`, {
+          user_id: userId,
+        })
+        return response.data
+      } catch (err) {
+        error.value = err.message || 'Không thể thêm thành viên.'
+        return null
+      } finally {
+        isLoading.value = false
+      }
+    }
+
+    /**
+     * Remove a member from a project (owner only).
+     * DELETE /api/projects/:id/members/:userId/
+     * @param {string} projectId
+     * @param {string} userId
+     * @returns {boolean} true on success
+     */
+    async function removeMember(projectId, userId) {
+      isLoading.value = true
+      error.value = null
+      try {
+        await apiClient.delete(`/api/projects/${projectId}/members/${userId}/`)
+        return true
+      } catch (err) {
+        error.value = err.message || 'Không thể xóa thành viên.'
+        return false
+      } finally {
+        isLoading.value = false
+      }
+    }
+
+    /**
+     * Search users to add to a project (owner only).
+     * GET /api/projects/:id/members/search/?q=
+     * @param {string} projectId
+     * @param {string} query — min 2 chars
+     * @returns {Array} user list
+     */
+    async function searchUsersToAdd(projectId, query) {
+      try {
+        const response = await apiClient.get(`/api/projects/${projectId}/members/search/`, {
+          params: { q: query },
+        })
+        const data = response.data
+        return Array.isArray(data) ? data : (data.results ?? [])
+      } catch (err) {
+        error.value = err.message || 'Không thể tìm kiếm người dùng.'
+        return []
+      }
+    }
+
     return {
       // State
       projects,
@@ -153,6 +238,10 @@ export const useProjectStore = defineStore(
       fetchProjectById,
       createProject,
       deleteProject,
+      fetchMembers,
+      addMember,
+      removeMember,
+      searchUsersToAdd,
     }
   },
   {
