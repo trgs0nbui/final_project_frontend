@@ -32,6 +32,12 @@ const routes = [
     meta: { requiresAuth: true, title: 'Dashboard' },
   },
   {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: { requiresAuth: true, title: 'Hồ sơ cá nhân' },
+  },
+  {
     path: '/projects/:id',
     name: 'project-detail',
     component: () => import('@/views/ProjectDetailView.vue'),

@@ -114,6 +114,71 @@ export const useAuthStore = defineStore(
       }
     }
 
+    /**
+     * Fetch the current user's full profile from the API.
+     * GET /api/users/me/
+     * Updates the user state with full_name, avatar_url, is_email_verified, etc.
+     */
+    async function fetchProfile() {
+      isLoading.value = true
+      error.value = null
+      try {
+        const response = await apiClient.get('/api/users/me/')
+        user.value = response.data
+      } catch (err) {
+        error.value = err.message || 'Không thể tải thông tin hồ sơ.'
+      } finally {
+        isLoading.value = false
+      }
+    }
+
+    /**
+     * Update the current user's profile.
+     * PATCH /api/users/me/ — only full_name and avatar_url are accepted.
+     * @param {{ full_name?: string, avatar_url?: string }} data
+     * @returns {boolean} true on success
+     */
+    async function updateProfile(data) {
+      isLoading.value = true
+      error.value = null
+      try {
+        const response = await apiClient.patch('/api/users/me/', data)
+        user.value = response.data
+        return true
+      } catch (err) {
+        error.value = err.message || 'Không thể cập nhật hồ sơ.'
+        return false
+      } finally {
+        isLoading.value = false
+      }
+    }
+
+    /**
+     * Upload avatar image file for the current user.
+     * POST /api/users/me/avatar/ — multipart/form-data with field 'avatar'.
+     * Updates user.avatar_url in state on success.
+     * @param {File} file - Image file selected by the user
+     * @returns {boolean} true on success
+     */
+    async function uploadAvatar(file) {
+      isLoading.value = true
+      error.value = null
+      try {
+        const formData = new FormData()
+        formData.append('avatar', file)
+        const response = await apiClient.post('/api/users/me/avatar/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        user.value = response.data
+        return true
+      } catch (err) {
+        error.value = err.message || 'Không thể tải ảnh lên. Vui lòng thử lại.'
+        return false
+      } finally {
+        isLoading.value = false
+      }
+    }
+
     return {
       // State
       user,
@@ -127,6 +192,9 @@ export const useAuthStore = defineStore(
       register,
       logout,
       refreshAccessToken,
+      fetchProfile,
+      updateProfile,
+      uploadAvatar,
     }
   },
   {
