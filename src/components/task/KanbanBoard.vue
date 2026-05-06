@@ -34,7 +34,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['task-moved', 'edit-task', 'delete-task', 'add-task'])
+const emit = defineEmits(['task-moved', 'edit-task', 'delete-task', 'add-task', 'view-task'])
 
 const taskStore = useTaskStore()
 
@@ -220,6 +220,7 @@ function resetFilters() {
         @edit-task="(task) => emit('edit-task', task)"
         @delete-task="(task) => emit('delete-task', task)"
         @add-task="(status) => emit('add-task', status)"
+        @view-task="(task) => emit('view-task', task)"
       />
     </div>
   </div>

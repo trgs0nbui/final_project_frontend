@@ -34,7 +34,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['task-dropped', 'edit-task', 'delete-task', 'add-task'])
+const emit = defineEmits(['task-dropped', 'edit-task', 'delete-task', 'add-task', 'view-task'])
 
 // ── Column styling ────────────────────────────────────────────────────────────
 
@@ -127,6 +127,7 @@ function onAdd(event) {
           :task="task"
           @edit="(t) => emit('edit-task', t)"
           @delete="(t) => emit('delete-task', t)"
+          @view="(t) => emit('view-task', t)"
         />
       </div>
     </VueDraggable>

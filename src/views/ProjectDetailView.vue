@@ -16,6 +16,7 @@ import { handleApiError } from '@/utils/errorHandler'
 import KanbanBoard from '@/components/task/KanbanBoard.vue'
 import TaskTable from '@/components/task/TaskTable.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
+import TaskDetailDrawer from '@/components/task/TaskDetailDrawer.vue'
 import MemberSearchDialog from '@/components/project/MemberSearchDialog.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
@@ -35,6 +36,9 @@ const isTaskFormVisible = ref(false)
 const editingTask = ref(null)
 const formMode = ref('create')
 const isSubmitting = ref(false)
+
+/** Task đang được xem trong drawer chi tiết */
+const viewingTask = ref(null)
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 const tasks = computed(() => taskStore.tasks)
@@ -103,6 +107,18 @@ function openCreateTask() {
   editingTask.value = null
   formMode.value = 'create'
   isTaskFormVisible.value = true
+}
+
+/**
+ * Mở drawer xem chi tiết task.
+ * @param {Object} task
+ */
+function openViewTask(task) {
+  viewingTask.value = task
+}
+
+function closeViewTask() {
+  viewingTask.value = null
 }
 
 /**
@@ -304,6 +320,7 @@ async function handleDeleteTask(task) {
         @edit-task="openEditTask"
         @delete-task="handleDeleteTask"
         @add-task="openCreateTaskWithStatus"
+        @view-task="openViewTask"
       />
 
       <!-- ── Table view ──────────────────────────────────────────────────── -->
@@ -314,6 +331,7 @@ async function handleDeleteTask(task) {
         :project-id="String(route.params.id)"
         @edit-task="openEditTask"
         @delete-task="handleDeleteTask"
+        @view-task="openViewTask"
       />
     </template>
 
@@ -349,6 +367,27 @@ async function handleDeleteTask(task) {
     <button class="project-detail__fab" aria-label="Tạo công việc mới" @click="openCreateTask">
       <el-icon :size="26"><Plus /></el-icon>
     </button>
+
+    <!-- ── Task detail drawer ─────────────────────────────────────────── -->
+    <TaskDetailDrawer
+      :task="viewingTask"
+      :project-id="String(route.params.id)"
+      :project-name="currentProject?.name ?? ''"
+      :is-owner="isOwner"
+      @close="closeViewTask"
+      @edit-task="
+        (task) => {
+          closeViewTask()
+          openEditTask(task)
+        }
+      "
+      @delete-task="
+        (task) => {
+          closeViewTask()
+          handleDeleteTask(task)
+        }
+      "
+    />
   </div>
 </template>
 
