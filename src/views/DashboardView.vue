@@ -1,13 +1,11 @@
 <script setup>
 /**
  * DashboardView — trang chính hiển thị danh sách dự án của người dùng.
- *
- * Yêu cầu: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 10.1, 10.2, 10.3, 10.4
  */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Filter, Sort } from '@element-plus/icons-vue'
 import { useProjectStore } from '@/stores/projects'
 import ProjectCard from '@/components/project/ProjectCard.vue'
 import ProjectForm from '@/components/project/ProjectForm.vue'
@@ -16,61 +14,44 @@ import SkeletonCard from '@/components/common/SkeletonCard.vue'
 const router = useRouter()
 const projectStore = useProjectStore()
 
-// ── State ────────────────────────────────────────────────────────────────────
-
-/** Kiểm soát hiển thị dialog tạo/chỉnh sửa dự án */
+// ── State ─────────────────────────────────────────────────────────────────────
 const isFormVisible = ref(false)
-
-/** Dự án đang được chỉnh sửa; null khi tạo mới */
 const editingProject = ref(null)
 
-// ── Computed ─────────────────────────────────────────────────────────────────
-
-/** Danh sách dự án từ store */
+// ── Computed ──────────────────────────────────────────────────────────────────
 const projects = computed(() => projectStore.projects)
-
-/** Trạng thái loading từ store */
 const isLoading = computed(() => projectStore.isLoading)
-
-/** Thông báo lỗi từ store */
 const storeError = computed(() => projectStore.error)
 
-/** Tiêu đề trang với số lượng dự án */
-const pageTitle = computed(() =>
+const projectCountLabel = computed(() =>
   projects.value.length > 0
-    ? `Dự án của tôi (${projects.value.length})`
-    : 'Dự án của tôi',
+    ? `Bạn có ${projects.value.length} dự án đang hoạt động.`
+    : 'Bạn chưa có dự án nào.',
 )
 
-// ── Lifecycle ────────────────────────────────────────────────────────────────
-
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
   await projectStore.fetchProjects()
 })
 
-// ── Handlers ─────────────────────────────────────────────────────────────────
+// ── Handlers ──────────────────────────────────────────────────────────────────
 
-/** Điều hướng đến trang chi tiết dự án khi click card */
 function handleCardClick(project) {
   router.push(`/projects/${project.id}`)
 }
 
-/** Mở dialog tạo dự án mới */
 function openCreateForm() {
   editingProject.value = null
   isFormVisible.value = true
 }
 
-/** Xử lý submit form tạo/chỉnh sửa dự án */
 async function handleFormSubmit(formData) {
   if (editingProject.value) {
-    // Chỉnh sửa — chưa triển khai trong task này
     ElMessage.info('Chức năng chỉnh sửa sẽ được triển khai sau.')
     isFormVisible.value = false
     return
   }
 
-  // Tạo mới
   const created = await projectStore.createProject(formData)
   if (created) {
     ElMessage.success('Tạo dự án thành công!')
@@ -80,7 +61,6 @@ async function handleFormSubmit(formData) {
   }
 }
 
-/** Xác nhận và xóa dự án */
 async function handleDeleteProject(project) {
   try {
     await ElMessageBox.confirm(
@@ -93,10 +73,7 @@ async function handleDeleteProject(project) {
         confirmButtonClass: 'el-button--danger',
       },
     )
-
-    // Người dùng xác nhận xóa
     await projectStore.deleteProject(project.id)
-
     if (!storeError.value) {
       ElMessage.success('Xóa dự án thành công!')
     } else {
@@ -110,19 +87,25 @@ async function handleDeleteProject(project) {
 
 <template>
   <div class="dashboard">
-    <!-- Header -->
+    <!-- ── Page header ──────────────────────────────────────────────────── -->
     <div class="dashboard__header">
-      <h1 class="dashboard__title">{{ pageTitle }}</h1>
-      <el-button
-        type="primary"
-        :icon="Plus"
-        @click="openCreateForm"
-      >
-        Tạo dự án mới
-      </el-button>
+      <div>
+        <h2 class="dashboard__title">Dự án đang hoạt động</h2>
+        <p class="dashboard__subtitle">{{ projectCountLabel }}</p>
+      </div>
+      <div class="dashboard__header-actions">
+        <button class="dashboard__filter-btn">
+          <el-icon :size="16"><Filter /></el-icon>
+          <span>Lọc</span>
+        </button>
+        <button class="dashboard__filter-btn">
+          <el-icon :size="16"><Sort /></el-icon>
+          <span>Mới nhất</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Lỗi API -->
+    <!-- ── API error ────────────────────────────────────────────────────── -->
     <el-alert
       v-if="storeError && !isLoading"
       :title="storeError"
@@ -132,12 +115,13 @@ async function handleDeleteProject(project) {
       class="dashboard__error"
     />
 
-    <!-- Skeleton loading (Req 6.9) -->
+    <!-- ── Skeleton loading ─────────────────────────────────────────────── -->
     <SkeletonCard v-if="isLoading" :count="6" />
 
-    <!-- Danh sách dự án (Req 6.1, 6.3) -->
+    <!-- ── Project grid ─────────────────────────────────────────────────── -->
     <template v-else-if="projects.length > 0">
       <div class="project-grid">
+        <!-- Existing project cards -->
         <ProjectCard
           v-for="project in projects"
           :key="project.id"
@@ -145,74 +129,368 @@ async function handleDeleteProject(project) {
           @click="handleCardClick"
           @delete="handleDeleteProject"
         />
+
+        <!-- "Create new project" bento tile -->
+        <div
+          class="project-grid__new-tile"
+          role="button"
+          tabindex="0"
+          @click="openCreateForm"
+          @keydown.enter="openCreateForm"
+        >
+          <div class="new-tile__icon-wrap" aria-hidden="true">
+            <el-icon :size="24"><Plus /></el-icon>
+          </div>
+          <h3 class="new-tile__title">Tạo dự án mới</h3>
+          <p class="new-tile__subtitle">Bắt đầu workflow mới hoặc tạo từ template.</p>
+        </div>
       </div>
     </template>
 
-    <!-- Trạng thái rỗng -->
-    <el-empty
-      v-else
-      description="Bạn chưa có dự án nào. Hãy tạo dự án đầu tiên!"
-      class="dashboard__empty"
-    >
-      <el-button type="primary" :icon="Plus" @click="openCreateForm">
-        Tạo dự án mới
-      </el-button>
-    </el-empty>
+    <!-- ── Empty state ──────────────────────────────────────────────────── -->
+    <div v-else class="dashboard__empty">
+      <div class="empty-state">
+        <div class="empty-state__icon" aria-hidden="true">
+          <el-icon :size="32"><Plus /></el-icon>
+        </div>
+        <h3 class="empty-state__title">Chưa có dự án nào</h3>
+        <p class="empty-state__subtitle">Tạo dự án đầu tiên để bắt đầu quản lý công việc.</p>
+        <el-button type="primary" :icon="Plus" class="empty-state__btn" @click="openCreateForm">
+          Tạo dự án mới
+        </el-button>
+      </div>
+    </div>
 
-    <!-- Dialog tạo/chỉnh sửa dự án (Req 6.5) -->
+    <!-- ── Stats footer ─────────────────────────────────────────────────── -->
+    <footer v-if="!isLoading && projects.length > 0" class="dashboard__stats">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <p class="stat-item__label">Tổng công việc</p>
+          <p class="stat-item__value">—</p>
+        </div>
+        <div class="stat-item">
+          <p class="stat-item__label">Tỷ lệ hoàn thành</p>
+          <p class="stat-item__value">—</p>
+        </div>
+        <div class="stat-item">
+          <p class="stat-item__label">Dự án đang hoạt động</p>
+          <p class="stat-item__value">{{ projects.length }}</p>
+        </div>
+        <div class="stat-item">
+          <p class="stat-item__label">Thành viên nhóm</p>
+          <p class="stat-item__value">—</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ── Project form dialog ──────────────────────────────────────────── -->
     <ProjectForm
       v-model:visible="isFormVisible"
       :project="editingProject"
       @submit="handleFormSubmit"
     />
+
+    <!-- ── FAB ──────────────────────────────────────────────────────────── -->
+    <button class="dashboard__fab" aria-label="Tạo dự án mới" @click="openCreateForm">
+      <el-icon :size="26"><Plus /></el-icon>
+    </button>
   </div>
 </template>
 
 <style scoped>
+/* ── Design tokens ───────────────────────────────────────────────────────────── */
+.dashboard {
+  --primary: #004ac6;
+  --primary-container: #2563eb;
+  --surface: #faf8ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f3fe;
+  --surface-container: #ededf9;
+  --on-surface: #191b23;
+  --on-surface-variant: #434655;
+  --outline: #737686;
+  --outline-variant: #c3c6d7;
+  --border-subtle: #e2e8f0;
+}
+
+/* ── Page shell ──────────────────────────────────────────────────────────────── */
 .dashboard {
   max-width: 1200px;
   margin: 0 auto;
+  padding-bottom: 80px; /* space for FAB */
 }
 
+/* ── Header ──────────────────────────────────────────────────────────────────── */
 .dashboard__header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
 .dashboard__title {
-  font-size: 22px;
+  /* h1 — DESIGN.md */
+  font-size: 24px;
   font-weight: 700;
-  color: #303133;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+  color: var(--on-surface);
+  margin: 0 0 4px;
+}
+
+.dashboard__subtitle {
+  /* body-base — DESIGN.md */
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--on-surface-variant);
   margin: 0;
 }
 
-.dashboard__error {
-  margin-bottom: 20px;
+.dashboard__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.dashboard__filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-family: inherit;
+  /* body-sm semibold — DESIGN.md */
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.dashboard__filter-btn:hover {
+  background: var(--surface-container-low);
+}
+
+/* ── Error ───────────────────────────────────────────────────────────────────── */
+.dashboard__error {
+  margin-bottom: 24px;
+  border-radius: 8px;
+}
+
+/* ── Project grid ────────────────────────────────────────────────────────────── */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
 }
 
+/* ── "Create new" tile ───────────────────────────────────────────────────────── */
+.project-grid__new-tile {
+  border: 2px dashed var(--border-subtle);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+  min-height: 200px;
+  outline: none;
+}
+
+.project-grid__new-tile:hover,
+.project-grid__new-tile:focus-visible {
+  background-color: var(--surface-container-low);
+  border-color: var(--outline-variant);
+}
+
+.new-tile__icon-wrap {
+  width: 48px;
+  height: 48px;
+  background: var(--surface-container);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--outline);
+  margin-bottom: 16px;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.project-grid__new-tile:hover .new-tile__icon-wrap {
+  background: rgba(0, 74, 198, 0.1);
+  color: var(--primary);
+}
+
+.new-tile__title {
+  /* h3 — DESIGN.md */
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--on-surface-variant);
+  margin: 0 0 6px;
+}
+
+.new-tile__subtitle {
+  /* body-sm — DESIGN.md */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--outline);
+  margin: 0;
+  max-width: 200px;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────────── */
 .dashboard__empty {
-  margin-top: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.empty-state__icon {
+  width: 64px;
+  height: 64px;
+  background: var(--surface-container-low);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--outline);
+  margin-bottom: 4px;
+}
+
+.empty-state__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--on-surface);
+  margin: 0;
+}
+
+.empty-state__subtitle {
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  margin: 0;
+  max-width: 320px;
+}
+
+.empty-state__btn {
+  margin-top: 8px;
+}
+
+/* ── Stats footer ────────────────────────────────────────────────────────────── */
+.dashboard__stats {
+  margin-top: 40px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  background: var(--surface-container-low);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.stat-item__label {
+  /* label-caps — DESIGN.md */
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--outline);
+  margin: 0 0 4px;
+}
+
+.stat-item__value {
+  /* h2 — DESIGN.md */
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+  margin: 0;
+}
+
+/* ── FAB ─────────────────────────────────────────────────────────────────────── */
+.dashboard__fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 74, 198, 0.35);
+  transition:
+    box-shadow 0.2s,
+    transform 0.15s,
+    background-color 0.15s;
+  z-index: 30;
+}
+
+.dashboard__fab:hover {
+  box-shadow: 0 6px 20px rgba(0, 74, 198, 0.45);
+  transform: translateY(-2px);
+  background: var(--primary-container);
+}
+
+.dashboard__fab:active {
+  transform: scale(0.92);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .project-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .dashboard__header {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .project-grid {
-    grid-template-columns: 1fr;
   }
 }
 </style>
