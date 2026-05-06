@@ -46,11 +46,16 @@ const routes = [
       {
         path: 'tasks/:taskId',
         name: 'task-detail',
-        // Rendered inside ProjectDetailView's <router-view>
         component: () => import('@/views/ProjectDetailView.vue'),
         meta: { requiresAuth: true, title: 'Chi tiết công việc' },
       },
     ],
+  },
+  {
+    path: '/projects/:id/members',
+    name: 'project-members',
+    component: () => import('@/views/ProjectMembersView.vue'),
+    meta: { requiresAuth: true, title: 'Quản lý thành viên' },
   },
 
   // ── Error / fallback routes ───────────────────────────────────────────────

@@ -240,6 +240,15 @@ async function handleDeleteTask(task) {
                 <span>Thêm thành viên</span>
               </button>
 
+              <!-- Quản lý thành viên -->
+              <button
+                class="project-detail__btn project-detail__btn--outline"
+                @click="router.push(`/projects/${route.params.id}/members`)"
+              >
+                <el-icon :size="16"><UserFilled /></el-icon>
+                <span>Thành viên</span>
+              </button>
+
               <!-- Tạo công việc -->
               <button
                 class="project-detail__btn project-detail__btn--primary"
