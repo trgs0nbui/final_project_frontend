@@ -1,290 +1,553 @@
 <template>
   <div class="register-page">
-    <div class="register-card">
-      <!-- Header -->
-      <div class="register-header">
-        <img src="@/assets/logo.svg" alt="PM App Logo" class="register-logo" />
-        <h1 class="register-title">Tạo tài khoản</h1>
-        <p class="register-subtitle">Bắt đầu quản lý dự án của bạn</p>
+    <!-- ── Left: form panel ──────────────────────────────────────────────── -->
+    <main class="form-panel">
+      <div class="form-panel__inner">
+        <!-- Brand -->
+        <div class="register-brand">
+          <div class="brand-mark" aria-hidden="true">
+            <el-icon :size="26" color="#ffffff"><Check /></el-icon>
+          </div>
+          <h1 class="register-title">TaskFlow</h1>
+          <p class="register-subtitle">Tạo tài khoản workspace doanh nghiệp của bạn</p>
+        </div>
+
+        <!-- Card -->
+        <div class="register-card">
+          <el-form
+            ref="formRef"
+            :model="formData"
+            :rules="formRules"
+            label-position="top"
+            size="large"
+            class="register-form"
+            @submit.prevent="handleSubmit"
+          >
+            <!-- Username -->
+            <el-form-item label="Tên đăng nhập" prop="username" class="form-item">
+              <el-input
+                v-model="formData.username"
+                placeholder="johndoe"
+                :prefix-icon="UserIcon"
+                autocomplete="username"
+                :disabled="authStore.isLoading"
+                clearable
+              />
+            </el-form-item>
+
+            <!-- Email -->
+            <el-form-item label="Địa chỉ Email" prop="email" class="form-item">
+              <el-input
+                v-model="formData.email"
+                type="email"
+                placeholder="john@company.com"
+                :prefix-icon="MessageIcon"
+                autocomplete="email"
+                :disabled="authStore.isLoading"
+                clearable
+              />
+            </el-form-item>
+
+            <!-- Password -->
+            <el-form-item label="Mật khẩu" prop="password" class="form-item">
+              <el-input
+                v-model="formData.password"
+                type="password"
+                placeholder="••••••••"
+                :prefix-icon="LockIcon"
+                show-password
+                autocomplete="new-password"
+                :disabled="authStore.isLoading"
+              />
+              <template #extra>
+                <span class="field-hint">Tối thiểu 8 ký tự.</span>
+              </template>
+            </el-form-item>
+
+            <!-- Confirm Password -->
+            <el-form-item label="Xác nhận mật khẩu" prop="confirmPassword" class="form-item">
+              <el-input
+                v-model="formData.confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                :prefix-icon="LockIcon"
+                show-password
+                autocomplete="new-password"
+                :disabled="authStore.isLoading"
+              />
+            </el-form-item>
+
+            <!-- API error -->
+            <el-alert
+              v-if="authStore.error"
+              :title="authStore.error"
+              type="error"
+              show-icon
+              :closable="false"
+              class="api-error"
+            />
+
+            <!-- Submit -->
+            <el-button
+              type="primary"
+              native-type="submit"
+              :loading="authStore.isLoading"
+              :disabled="authStore.isLoading"
+              class="submit-btn"
+              size="large"
+            >
+              <span>{{ authStore.isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}</span>
+              <el-icon v-if="!authStore.isLoading" class="submit-btn__arrow"
+                ><ArrowRight
+              /></el-icon>
+            </el-button>
+          </el-form>
+
+          <!-- Divider + login link -->
+          <div class="card-footer">
+            <p class="login-prompt">
+              Đã có tài khoản?
+              <router-link to="/login" class="login-link">Đăng nhập</router-link>
+            </p>
+          </div>
+        </div>
+
+        <!-- Legal links -->
+        <div class="legal-links">
+          <a href="#" class="legal-link">Chính sách bảo mật</a>
+          <span class="legal-dot" aria-hidden="true"></span>
+          <a href="#" class="legal-link">Điều khoản dịch vụ</a>
+          <span class="legal-dot" aria-hidden="true"></span>
+          <a href="#" class="legal-link">Trung tâm hỗ trợ</a>
+        </div>
+        <p class="legal-copy">© 2026 TASKFLOW ENTERPRISE SOLUTIONS</p>
       </div>
+    </main>
 
-      <!-- Form -->
-      <el-form
-        label-position="top"
-        size="large"
-        class="register-form"
-        @submit.prevent="handleSubmit"
-      >
-        <!-- Username -->
-        <el-form-item label="Tên đăng nhập" class="form-item">
-          <el-input
-            v-model="formData.username"
-            placeholder="Nhập tên đăng nhập"
-            :prefix-icon="User"
-            autocomplete="username"
-            :disabled="authStore.isLoading"
-            @blur="validateField('username')"
-          />
-          <p v-if="errors.username" class="field-error" role="alert">
-            {{ errors.username }}
-          </p>
-        </el-form-item>
-
-        <!-- Email -->
-        <el-form-item label="Email" class="form-item">
-          <el-input
-            v-model="formData.email"
-            type="email"
-            placeholder="Nhập địa chỉ email"
-            :prefix-icon="Message"
-            autocomplete="email"
-            :disabled="authStore.isLoading"
-            @blur="validateField('email')"
-          />
-          <p v-if="errors.email" class="field-error" role="alert">
-            {{ errors.email }}
-          </p>
-        </el-form-item>
-
-        <!-- Password -->
-        <el-form-item label="Mật khẩu" class="form-item">
-          <el-input
-            v-model="formData.password"
-            type="password"
-            placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
-            :prefix-icon="Lock"
-            show-password
-            autocomplete="new-password"
-            :disabled="authStore.isLoading"
-            @blur="validateField('password')"
-          />
-          <p v-if="errors.password" class="field-error" role="alert">
-            {{ errors.password }}
-          </p>
-        </el-form-item>
-
-        <!-- Confirm Password -->
-        <el-form-item label="Xác nhận mật khẩu" class="form-item">
-          <el-input
-            v-model="formData.confirmPassword"
-            type="password"
-            placeholder="Nhập lại mật khẩu"
-            :prefix-icon="Lock"
-            show-password
-            autocomplete="new-password"
-            :disabled="authStore.isLoading"
-            @blur="validateField('confirmPassword')"
-          />
-          <p v-if="errors.confirmPassword" class="field-error" role="alert">
-            {{ errors.confirmPassword }}
-          </p>
-        </el-form-item>
-
-        <!-- API-level error -->
-        <el-alert
-          v-if="authStore.error"
-          :title="authStore.error"
-          type="error"
-          show-icon
-          :closable="false"
-          class="api-error"
-        />
-
-        <!-- Submit -->
-        <el-button
-          type="primary"
-          native-type="submit"
-          :loading="authStore.isLoading"
-          :disabled="authStore.isLoading"
-          class="submit-btn"
-          @click="handleSubmit"
-        >
-          {{ authStore.isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}
-        </el-button>
-      </el-form>
-
-      <!-- Footer link -->
-      <p class="register-footer">
-        Đã có tài khoản?
-        <router-link to="/login" class="footer-link">Đăng nhập</router-link>
-      </p>
-    </div>
+    <!-- ── Right: decorative sidebar (desktop only) ──────────────────────── -->
+    <aside class="deco-panel" aria-hidden="true">
+      <div class="deco-panel__overlay"></div>
+      <div class="deco-panel__content">
+        <h2 class="deco-panel__headline">Streamline your workflow with surgical precision.</h2>
+        <div class="deco-panel__social-proof">
+          <div class="avatar-stack">
+            <div class="avatar-placeholder">JD</div>
+            <div class="avatar-placeholder">KL</div>
+            <div class="avatar-placeholder">MR</div>
+          </div>
+          <p class="deco-panel__social-text">Được tin dùng bởi 12,000+ nhóm trên toàn thế giới</p>
+        </div>
+      </div>
+    </aside>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useForm } from 'vee-validate'
-import * as yup from 'yup'
-import { User, Lock, Message } from '@element-plus/icons-vue'
+import {
+  User as UserIcon,
+  Lock as LockIcon,
+  Message as MessageIcon,
+  Check,
+  ArrowRight,
+} from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-// ── Validation schema ────────────────────────────────────────────────────────
-const registerSchema = yup.object({
-  username: yup
-    .string()
-    .required('Tên đăng nhập không được để trống')
-    .min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự')
-    .max(150, 'Tên đăng nhập không được vượt quá 150 ký tự')
-    .matches(/^[\w.@+-]+$/, 'Tên đăng nhập chỉ được chứa chữ cái, số và các ký tự . @ + - _'),
-  email: yup
-    .string()
-    .required('Email không được để trống')
-    .email('Địa chỉ email không hợp lệ'),
-  password: yup
-    .string()
-    .required('Mật khẩu không được để trống')
-    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự'),
-  confirmPassword: yup
-    .string()
-    .required('Vui lòng xác nhận mật khẩu')
-    .oneOf([yup.ref('password')], 'Mật khẩu xác nhận không khớp'),
-})
+// ── Template ref ──────────────────────────────────────────────────────────────
+const formRef = ref(null)
 
-// ── VeeValidate setup ────────────────────────────────────────────────────────
-const { handleSubmit: veeHandleSubmit, errors, validateField, defineField } = useForm({
-  validationSchema: registerSchema,
-})
-
-const [usernameField] = defineField('username')
-const [emailField] = defineField('email')
-const [passwordField] = defineField('password')
-const [confirmPasswordField] = defineField('confirmPassword')
-
+// ── Form state ────────────────────────────────────────────────────────────────
 const formData = reactive({
-  get username() { return usernameField.value ?? '' },
-  set username(v) { usernameField.value = v },
-  get email() { return emailField.value ?? '' },
-  set email(v) { emailField.value = v },
-  get password() { return passwordField.value ?? '' },
-  set password(v) { passwordField.value = v },
-  get confirmPassword() { return confirmPasswordField.value ?? '' },
-  set confirmPassword(v) { confirmPasswordField.value = v },
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
 })
 
-// ── Submit handler ───────────────────────────────────────────────────────────
-const handleSubmit = veeHandleSubmit(async (values) => {
+// ── Validation rules ──────────────────────────────────────────────────────────
+const formRules = {
+  username: [
+    { required: true, message: 'Tên đăng nhập không được để trống', trigger: 'blur' },
+    { min: 3, message: 'Tên đăng nhập phải có ít nhất 3 ký tự', trigger: 'blur' },
+    { max: 150, message: 'Tên đăng nhập không được vượt quá 150 ký tự', trigger: 'blur' },
+    {
+      pattern: /^[\w.@+-]+$/,
+      message: 'Chỉ được chứa chữ cái, số và các ký tự . @ + - _',
+      trigger: 'blur',
+    },
+  ],
+  email: [
+    { required: true, message: 'Email không được để trống', trigger: 'blur' },
+    { type: 'email', message: 'Địa chỉ email không hợp lệ', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: 'Mật khẩu không được để trống', trigger: 'blur' },
+    { min: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự', trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { required: true, message: 'Vui lòng xác nhận mật khẩu', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== formData.password) {
+          callback(new Error('Mật khẩu xác nhận không khớp'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur',
+    },
+  ],
+}
+
+/**
+ * Handle form submission — validate via ElForm then call auth store register.
+ */
+const handleSubmit = async () => {
+  const isValid = await formRef.value?.validate().catch(() => false)
+  if (!isValid) return
+
   await authStore.register({
-    username: values.username,
-    email: values.email,
-    password: values.password,
-    confirmPassword: values.confirmPassword,
+    username: formData.username,
+    email: formData.email,
+    password: formData.password,
+    confirmPassword: formData.confirmPassword,
   })
 
-  // AuthStore.register() calls login() internally on success,
-  // so isAuthenticated will be true if everything went well.
   if (authStore.isAuthenticated) {
     router.push('/dashboard')
   }
-})
+}
 </script>
 
 <style scoped>
-/* ── Page layout ─────────────────────────────────────────────────────────── */
+/* ── Design tokens (DESIGN.md) ───────────────────────────────────────────────── */
+.register-page {
+  --primary: #004ac6;
+  --primary-container: #2563eb;
+  --surface: #faf8ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f3fe;
+  --on-surface: #191b23;
+  --on-surface-variant: #434655;
+  --outline: #737686;
+  --outline-variant: #c3c6d7;
+  --border-subtle: #e2e8f0;
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+  --surface-sidebar: #0f172a;
+}
+
+/* ── Page shell: two-column on desktop ───────────────────────────────────────── */
 .register-page {
   min-height: 100vh;
   display: flex;
+  background-color: var(--surface);
+}
+
+/* ── Left form panel ─────────────────────────────────────────────────────────── */
+.form-panel {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 24px;
+  padding: 40px 24px;
+  overflow-y: auto;
 }
 
-/* ── Card ────────────────────────────────────────────────────────────────── */
-.register-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 40px 36px;
+.form-panel__inner {
   width: 100%;
-  max-width: 440px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* ── Header ──────────────────────────────────────────────────────────────── */
-.register-header {
+/* ── Brand ───────────────────────────────────────────────────────────────────── */
+.register-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   margin-bottom: 32px;
 }
 
-.register-logo {
+.brand-mark {
+  width: 48px;
   height: 48px;
-  width: auto;
+  background-color: var(--primary);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 74, 198, 0.3);
 }
 
 .register-title {
+  /* h1 — DESIGN.md */
   font-size: 24px;
-  font-weight: 700;
-  color: #303133;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+  color: var(--on-surface);
   margin: 0 0 6px;
 }
 
 .register-subtitle {
+  /* body-base — DESIGN.md */
   font-size: 14px;
-  color: #909399;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--on-surface-variant);
   margin: 0;
 }
 
-/* ── Form ────────────────────────────────────────────────────────────────── */
+/* ── Card ────────────────────────────────────────────────────────────────────── */
+.register-card {
+  width: 100%;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Form ────────────────────────────────────────────────────────────────────── */
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+}
+
+/* label-caps token — DESIGN.md */
+.register-form :deep(.el-form-item__label) {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  padding-bottom: 6px;
 }
 
 .form-item {
-  margin-bottom: 8px;
+  margin-bottom: 20px;
 }
 
-/* Inline field error */
-.field-error {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #f56c6c;
-  line-height: 1.4;
+/* Input border radius */
+.register-form :deep(.el-input__wrapper) {
+  border-radius: 8px;
 }
 
-/* API-level error alert */
+/* Password hint below the field */
+.field-hint {
+  /* body-sm — DESIGN.md */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--on-surface-variant);
+  margin-top: 4px;
+  display: block;
+}
+
+/* ── API error ───────────────────────────────────────────────────────────────── */
 .api-error {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  border-radius: 8px;
 }
 
-/* Submit button */
+/* ── Submit button ───────────────────────────────────────────────────────────── */
 .submit-btn {
   width: 100%;
   margin-top: 8px;
   height: 44px;
   font-size: 15px;
   font-weight: 600;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  --el-button-bg-color: var(--primary);
+  --el-button-border-color: var(--primary);
+  --el-button-hover-bg-color: var(--primary-container);
+  --el-button-hover-border-color: var(--primary-container);
+  --el-button-active-bg-color: var(--primary);
 }
 
-/* ── Footer ──────────────────────────────────────────────────────────────── */
-.register-footer {
-  text-align: center;
+.submit-btn__arrow {
+  font-size: 16px;
+}
+
+/* ── Card footer: login link ─────────────────────────────────────────────────── */
+.card-footer {
   margin-top: 24px;
-  font-size: 14px;
-  color: #606266;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+  text-align: center;
 }
 
-.footer-link {
-  color: #409eff;
+.login-prompt {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--on-surface-variant);
+  margin: 0;
+}
+
+.login-link {
+  color: var(--primary);
+  font-weight: 600;
   text-decoration: none;
-  font-weight: 500;
   margin-left: 4px;
 }
 
-.footer-link:hover {
+.login-link:hover {
   text-decoration: underline;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
+/* ── Legal links ─────────────────────────────────────────────────────────────── */
+.legal-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.legal-link {
+  /* body-sm — DESIGN.md */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--outline);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.legal-link:hover {
+  color: var(--on-surface);
+}
+
+.legal-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--outline-variant);
+  flex-shrink: 0;
+}
+
+.legal-copy {
+  /* label-caps — DESIGN.md */
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--outline);
+  margin: 12px 0 0;
+  text-align: center;
+}
+
+/* ── Right decorative panel (desktop only) ───────────────────────────────────── */
+.deco-panel {
+  display: none;
+  position: relative;
+  width: 33.333%;
+  background-color: var(--surface-sidebar);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Gradient overlay at the bottom */
+.deco-panel__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--surface-sidebar) 0%, transparent 60%);
+  z-index: 1;
+}
+
+/* Decorative grid pattern */
+.deco-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+}
+
+.deco-panel__content {
+  position: absolute;
+  bottom: 48px;
+  left: 48px;
+  right: 48px;
+  z-index: 2;
+  color: #ffffff;
+}
+
+.deco-panel__headline {
+  /* h1 scale, white */
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  margin: 0 0 24px;
+}
+
+.deco-panel__social-proof {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-stack {
+  display: flex;
+}
+
+.avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--surface-sidebar);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: -8px;
+}
+
+.avatar-placeholder:first-child {
+  margin-left: 0;
+}
+
+.deco-panel__social-text {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+  .deco-panel {
+    display: block;
+  }
+}
+
 @media (max-width: 480px) {
   .register-card {
-    padding: 28px 20px;
+    padding: 24px 20px;
   }
 
   .register-title {

@@ -12,7 +12,9 @@ const authStore = useAuthStore()
       <AppNavBar />
     </el-header>
 
-    <el-main class="app-main">
+    <!-- Remove padding for unauthenticated pages (login / register) so they
+         can manage their own full-page layout. -->
+    <el-main :class="['app-main', { 'app-main--no-padding': !authStore.isAuthenticated }]">
       <RouterView />
     </el-main>
   </el-container>
@@ -32,5 +34,9 @@ const authStore = useAuthStore()
 .app-main {
   padding: 24px;
   flex: 1;
+}
+
+.app-main--no-padding {
+  padding: 0;
 }
 </style>
