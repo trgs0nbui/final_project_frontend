@@ -143,47 +143,6 @@ function handleDelete() {
 }
 </script>
 
-<template>
-  <el-card
-    class="project-card"
-    shadow="hover"
-    @click="handleCardClick"
-  >
-    <div class="project-card__body">
-      <!-- Tên dự án -->
-      <h3 class="project-card__name">{{ project.name }}</h3>
-
-      <!-- Mô tả -->
-      <p class="project-card__description">
-        {{ project.description || 'Chưa có mô tả' }}
-      </p>
-
-      <!-- Footer: số task + ngày tạo + nút xóa -->
-      <div class="project-card__footer">
-        <div class="project-card__meta">
-          <span class="project-card__task-count">
-            <el-icon class="meta-icon"><i class="el-icon-tickets" /></el-icon>
-            {{ taskCount !== null ? `${taskCount} công việc` : 'Chưa có dữ liệu công việc' }}
-          </span>
-          <span class="project-card__date">
-            Tạo ngày {{ formattedDate }}
-          </span>
-        </div>
-
-        <el-button
-          type="danger"
-          :icon="Delete"
-          size="small"
-          circle
-          class="project-card__delete-btn"
-          title="Xóa dự án"
-          @click="handleDelete"
-        />
-      </div>
-    </div>
-  </el-card>
-</template>
-
 <style scoped>
 /* ── Design tokens ───────────────────────────────────────────────────────────── */
 .project-card {

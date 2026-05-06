@@ -2,8 +2,8 @@
 /**
  * DashboardView — trang chính hiển thị danh sách dự án của người dùng.
  */
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { Plus, Filter, Sort } from '@element-plus/icons-vue'
 import { useProjectStore } from '@/stores/projects'
@@ -12,6 +12,7 @@ import ProjectForm from '@/components/project/ProjectForm.vue'
 import SkeletonCard from '@/components/common/SkeletonCard.vue'
 
 const router = useRouter()
+const route = useRoute()
 const projectStore = useProjectStore()
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -19,15 +20,34 @@ const isFormVisible = ref(false)
 const editingProject = ref(null)
 
 // ── Computed ──────────────────────────────────────────────────────────────────
-const projects = computed(() => projectStore.projects)
+const allProjects = computed(() => projectStore.projects)
 const isLoading = computed(() => projectStore.isLoading)
 const storeError = computed(() => projectStore.error)
 
-const projectCountLabel = computed(() =>
-  projects.value.length > 0
+/**
+ * Client-side search filter — reads ?search= from the URL query param
+ * (set by AppTopbar when the user submits a search).
+ */
+const searchQuery = computed(() => (route.query.search ?? '').toString().toLowerCase().trim())
+
+const projects = computed(() => {
+  if (!searchQuery.value) return allProjects.value
+  return allProjects.value.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchQuery.value) ||
+      p.key?.toLowerCase().includes(searchQuery.value) ||
+      p.description?.toLowerCase().includes(searchQuery.value),
+  )
+})
+
+const projectCountLabel = computed(() => {
+  if (searchQuery.value) {
+    return `Tìm thấy ${projects.value.length} dự án cho "${route.query.search}".`
+  }
+  return projects.value.length > 0
     ? `Bạn có ${projects.value.length} dự án đang hoạt động.`
-    : 'Bạn chưa có dự án nào.',
-)
+    : 'Bạn chưa có dự án nào.'
+})
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
@@ -43,6 +63,10 @@ function handleCardClick(project) {
 function openCreateForm() {
   editingProject.value = null
   isFormVisible.value = true
+}
+
+function clearSearch() {
+  router.replace({ query: {} })
 }
 
 async function handleFormSubmit(formData) {
@@ -91,16 +115,17 @@ async function handleDeleteProject(project) {
     <div class="dashboard__header">
       <div>
         <h2 class="dashboard__title">Dự án đang hoạt động</h2>
-        <p class="dashboard__subtitle">{{ projectCountLabel }}</p>
+        <p class="dashboard__subtitle">
+          {{ projectCountLabel }}
+          <button v-if="searchQuery" class="dashboard__clear-search" @click="clearSearch">
+            Xóa tìm kiếm
+          </button>
+        </p>
       </div>
       <div class="dashboard__header-actions">
-        <button class="dashboard__filter-btn">
-          <el-icon :size="16"><Filter /></el-icon>
-          <span>Lọc</span>
-        </button>
-        <button class="dashboard__filter-btn">
-          <el-icon :size="16"><Sort /></el-icon>
-          <span>Mới nhất</span>
+        <button class="dashboard__filter-btn" @click="openCreateForm">
+          <el-icon :size="16"><Plus /></el-icon>
+          <span>Tạo dự án</span>
         </button>
       </div>
     </div>
@@ -247,6 +272,22 @@ async function handleDeleteProject(project) {
   line-height: 20px;
   color: var(--on-surface-variant);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard__clear-search {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .dashboard__header-actions {

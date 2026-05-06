@@ -33,17 +33,17 @@ export const useTaskStore = defineStore('tasks', () => {
   // Actions
 
   /**
-   * Fetch all tasks for a given project.
-   * GET /api/projects/:projectId/tasks/
-   * Updates tasks state.
-   * @param {number} projectId - Project id
+   * Fetch tasks for a given project, with optional filter/search params.
+   * GET /api/projects/:projectId/tasks/?search=&status=&priority=
+   * @param {string} projectId - Project UUID
+   * @param {Object} [params]  - Optional query params: { search, status, priority, assignee, due_date_from, due_date_to }
    */
-  async function fetchTasks(projectId) {
+  async function fetchTasks(projectId, params = {}) {
     isLoading.value = true
     error.value = null
 
     try {
-      const response = await apiClient.get(`/api/projects/${projectId}/tasks/`)
+      const response = await apiClient.get(`/api/projects/${projectId}/tasks/`, { params })
       const data = response.data
 
       // Support both paginated (DRF default: { count, results }) and plain array responses

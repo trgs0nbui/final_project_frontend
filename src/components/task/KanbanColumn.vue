@@ -2,22 +2,20 @@
 /**
  * KanbanColumn — một cột trong Kanban board.
  *
- * Sử dụng VueDraggable (vue-draggable-plus) để cho phép kéo thả TaskCard
- * giữa các cột. Khi một task được thả vào cột này, component emit sự kiện
- * `task-dropped` lên KanbanBoard để xử lý cập nhật trạng thái.
- *
  * Props:
  *   title  {string}  — tiêu đề hiển thị của cột
- *   status {string}  — giá trị status tương ứng ('todo' | 'in_progress' | 'done')
+ *   status {string}  — giá trị status ('todo' | 'in_progress' | 'done')
  *   tasks  {Task[]}  — danh sách task thuộc cột này
  *
  * Emits:
- *   task-dropped (taskId, newStatus) — khi task được kéo thả vào cột
- *   edit-task    (task)              — chuyển tiếp từ TaskCard
- *   delete-task  (task)              — chuyển tiếp từ TaskCard
+ *   task-dropped (taskId: string, newStatus: string)
+ *   edit-task    (task)
+ *   delete-task  (task)
+ *   add-task     (status)
  */
-import { computed } from 'vue'
+import { ref, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
+import { Plus } from '@element-plus/icons-vue'
 import TaskCard from './TaskCard.vue'
 
 const props = defineProps({
@@ -36,40 +34,49 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['task-dropped', 'edit-task', 'delete-task'])
+const emit = defineEmits(['task-dropped', 'edit-task', 'delete-task', 'add-task'])
 
-/** Map status sang màu header cột */
-const COLUMN_COLOR_MAP = {
-  todo: '#909399',
-  in_progress: '#e6a23c',
-  done: '#67c23a',
+// ── Column styling ────────────────────────────────────────────────────────────
+
+const COLUMN_CONFIG = {
+  todo: { badgeBg: '#F1F5F9', badgeColor: '#737686' },
+  in_progress: { badgeBg: '#DBEAFE', badgeColor: '#2563eb' },
+  done: { badgeBg: '#DCFCE7', badgeColor: '#16a34a' },
 }
 
-const headerColor = COLUMN_COLOR_MAP[props.status] ?? '#409eff'
+const config = COLUMN_CONFIG[props.status] ?? COLUMN_CONFIG.todo
 
-/**
- * Local copy of the tasks list for VueDraggable.
- * VueDraggable needs a writable ref — we cannot v-model a prop directly.
- * We use a computed with get/set: reads from props, writes are intercepted
- * so we can emit the task-dropped event instead of mutating the prop.
- */
-const localTasks = computed({
-  get: () => props.tasks,
-  set: () => {
-    // Intentionally a no-op: actual state updates happen via task-dropped emit
-    // which triggers TaskStore.patchTask() in the parent view.
+// ── Draggable list ────────────────────────────────────────────────────────────
+//
+// VueDraggable requires a writable ref — a computed with a no-op setter does
+// NOT work because SortableJS mutates the array in-place when items are moved.
+// We keep a local ref that mirrors the prop and re-sync it whenever the prop
+// changes (e.g. after a successful PATCH response from the server).
+//
+// The actual status update is handled by the @add event: when a card is
+// dragged INTO this column from another column, we emit task-dropped so the
+// parent can call TaskStore.patchTask().
+
+const localTasks = ref([...props.tasks])
+
+watch(
+  () => props.tasks,
+  (newTasks) => {
+    localTasks.value = [...newTasks]
   },
-})
+  { deep: true },
+)
 
 /**
- * Được gọi bởi VueDraggable khi một item được thêm vào cột này
- * (tức là kéo từ cột khác sang).
- * @param {Object} event - SortableJS add event
+ * Fired by VueDraggable when a task card is dropped INTO this column.
+ * event.item is the dragged DOM element; we read the task UUID from its
+ * data-task-id attribute (set on the wrapper div below).
+ *
+ * @param {SortableEvent} event
  */
 function onAdd(event) {
-  // event.item là DOM element của task card được kéo
-  // Lấy taskId từ data attribute được gán trong TaskCard wrapper
-  const taskId = Number(event.item.dataset.taskId)
+  // task IDs are UUIDs — keep them as strings, never coerce with Number()
+  const taskId = event.item?.dataset?.taskId
   if (taskId) {
     emit('task-dropped', taskId, props.status)
   }
@@ -78,18 +85,28 @@ function onAdd(event) {
 
 <template>
   <div class="kanban-column" :aria-label="`Cột ${title}`">
-    <!-- Header cột -->
-    <div class="kanban-column__header" :style="{ borderTopColor: headerColor }">
-      <span class="kanban-column__title">{{ title }}</span>
-      <el-badge
-        :value="tasks.length"
-        :max="99"
-        class="kanban-column__count"
-        type="info"
-      />
+    <!-- Header -->
+    <div class="kanban-column__header">
+      <div class="kanban-column__header-left">
+        <h3 class="kanban-column__title">{{ title }}</h3>
+        <span
+          class="kanban-column__count"
+          :style="{ backgroundColor: config.badgeBg, color: config.badgeColor }"
+        >
+          {{ tasks.length }}
+        </span>
+      </div>
+      <button
+        class="kanban-column__add-btn"
+        :title="`Thêm công việc vào ${title}`"
+        :aria-label="`Thêm công việc vào ${title}`"
+        @click="emit('add-task', status)"
+      >
+        <el-icon :size="18"><Plus /></el-icon>
+      </button>
     </div>
 
-    <!-- Danh sách task có thể kéo thả -->
+    <!-- Draggable task list -->
     <VueDraggable
       v-model="localTasks"
       :group="{ name: 'kanban', pull: true, put: true }"
@@ -97,6 +114,7 @@ function onAdd(event) {
       ghost-class="task-card--ghost"
       drag-class="task-card--dragging"
       :animation="200"
+      item-key="id"
       @add="onAdd"
     >
       <div
@@ -113,77 +131,112 @@ function onAdd(event) {
       </div>
     </VueDraggable>
 
-    <!-- Placeholder khi cột rỗng -->
-    <div v-if="tasks.length === 0" class="kanban-column__empty">
-      <span>Không có công việc</span>
-    </div>
+    <!-- Empty placeholder -->
+    <div v-if="localTasks.length === 0" class="kanban-column__empty">Kéo thả công việc vào đây</div>
   </div>
 </template>
 
 <style scoped>
+/* ── Design tokens ───────────────────────────────────────────────────────────── */
+.kanban-column {
+  --surface-lowest: #ffffff;
+  --surface-container-high: #e7e7f3;
+  --on-surface: #191b23;
+  --outline: #737686;
+  --border-subtle: #e2e8f0;
+}
+
+/* ── Column shell ────────────────────────────────────────────────────────────── */
 .kanban-column {
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
-  border-radius: 10px;
-  min-width: 0;
-  flex: 1;
   min-height: 200px;
 }
 
+/* ── Header ──────────────────────────────────────────────────────────────────── */
 .kanban-column__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px 10px;
-  border-top: 3px solid #409eff;
-  border-radius: 10px 10px 0 0;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+}
+
+.kanban-column__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .kanban-column__title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  line-height: 24px;
+  color: var(--on-surface);
+  margin: 0;
 }
 
 .kanban-column__count {
-  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
 }
 
+.kanban-column__add-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--outline);
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.kanban-column__add-btn:hover {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
+/* ── Task list ───────────────────────────────────────────────────────────────── */
 .kanban-column__list {
   flex: 1;
-  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  /* min-height ensures SortableJS can detect the drop zone even when empty */
   min-height: 80px;
-  /* Cho phép SortableJS nhận diện vùng thả khi cột rỗng */
-  overflow-y: auto;
 }
 
-.kanban-column__item {
-  /* Wrapper cần thiết để SortableJS đọc data-task-id */
-}
-
+/* ── Empty state ─────────────────────────────────────────────────────────────── */
 .kanban-column__empty {
-  padding: 16px;
+  padding: 24px 16px;
   text-align: center;
   font-size: 13px;
-  color: #c0c4cc;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--outline);
   font-style: italic;
+  border: 2px dashed var(--border-subtle);
+  border-radius: 8px;
+  margin-top: 4px;
 }
 
-/* Ghost class khi đang kéo */
+/* ── Drag states ─────────────────────────────────────────────────────────────── */
 :deep(.task-card--ghost) {
   opacity: 0.35;
-  background: #d9ecff;
-  border: 1px dashed #409eff;
-  border-radius: 8px;
+  background: #dbeafe;
+  border: 1px dashed #004ac6;
+  border-radius: 12px;
 }
 
-/* Class khi item đang được kéo (clone) */
 :deep(.task-card--dragging) {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   transform: rotate(1.5deg);

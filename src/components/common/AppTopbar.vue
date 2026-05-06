@@ -9,6 +9,7 @@
         type="text"
         placeholder="Tìm kiếm dự án, công việc hoặc thành viên..."
         aria-label="Tìm kiếm"
+        @keydown.enter="handleSearchSubmit"
       />
     </div>
 
@@ -53,7 +54,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   Search,
   Bell,
@@ -63,9 +64,12 @@ import {
   SwitchButton,
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { useProjectStore } from '@/stores/projects'
 
 const authStore = useAuthStore()
+const projectStore = useProjectStore()
 const router = useRouter()
+const route = useRoute()
 
 const searchQuery = ref('')
 
@@ -74,6 +78,16 @@ const userInitials = computed(() => {
   const name = authStore.user?.username ?? ''
   return name.slice(0, 2).toUpperCase() || 'U'
 })
+
+/**
+ * Tìm kiếm dự án: lọc client-side trên danh sách projects đã tải.
+ * Nhấn Enter để điều hướng về dashboard với query param ?search=
+ */
+function handleSearchSubmit() {
+  const q = searchQuery.value.trim()
+  if (!q) return
+  router.push({ name: 'dashboard', query: { search: q } })
+}
 
 function handleCommand(command) {
   if (command === 'logout') {
