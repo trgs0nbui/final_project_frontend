@@ -19,7 +19,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['edit', 'delete'])
+const emit = defineEmits(['edit', 'delete', 'view'])
 
 // ── Priority config ───────────────────────────────────────────────────────────
 
@@ -117,6 +117,7 @@ function handleDelete(event) {
     :style="{ borderLeftColor: priorityConfig.borderColor }"
     role="article"
     :aria-label="task.title"
+    @click="emit('view', task)"
   >
     <!-- Top row: priority badge + more menu -->
     <div class="task-card__top">

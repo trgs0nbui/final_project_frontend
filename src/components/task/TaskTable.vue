@@ -30,7 +30,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['edit-task', 'delete-task'])
+const emit = defineEmits(['edit-task', 'delete-task', 'view-task'])
 
 const taskStore = useTaskStore()
 
@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
 
             <!-- Title -->
             <td class="tt-td">
-              <div class="tt-title-cell">
+              <div class="tt-title-cell" style="cursor: pointer" @click="emit('view-task', task)">
                 <span class="tt-title" :class="{ 'tt-title--done': task.status === 'done' }">
                   {{ task.title }}
                 </span>
@@ -504,6 +504,18 @@ onBeforeUnmount(() => {
   <!-- ── Action menu portal — rendered at body level to escape overflow:hidden ── -->
   <Teleport to="body">
     <div v-if="activeMenuId !== null" class="tt-menu-portal" :style="menuStyle" @click.stop>
+      <button
+        class="tt-menu__item"
+        @click="
+          emit(
+            'view-task',
+            pagedTasks.find((t) => t.id === activeMenuId),
+          )
+        "
+      >
+        <el-icon :size="14"><Search /></el-icon>
+        Xem chi tiết
+      </button>
       <button
         class="tt-menu__item"
         @click="handleEdit(pagedTasks.find((t) => t.id === activeMenuId))"
