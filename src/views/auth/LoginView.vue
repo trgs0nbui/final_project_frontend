@@ -1,236 +1,620 @@
 <template>
   <div class="login-page">
-    <div class="login-card">
-      <!-- Header -->
-      <div class="login-header">
-        <img src="@/assets/logo.svg" alt="PM App Logo" class="login-logo" />
-        <h1 class="login-title">Đăng nhập</h1>
-        <p class="login-subtitle">Chào mừng bạn trở lại</p>
+    <!-- ── Background accent blobs ──────────────────────────────────────── -->
+    <div class="bg-blob bg-blob--tl" aria-hidden="true"></div>
+    <div class="bg-blob bg-blob--br" aria-hidden="true"></div>
+
+    <main class="login-main">
+      <div class="login-container">
+        <!-- Brand -->
+        <div class="login-brand">
+          <div class="brand-mark" aria-hidden="true">
+            <el-icon :size="26" color="#ffffff"><Check /></el-icon>
+          </div>
+          <h1 class="login-title">Welcome Back</h1>
+          <p class="login-subtitle">
+            Đăng nhập vào TaskFlow để quản lý dự án và cộng tác với nhóm của bạn.
+          </p>
+        </div>
+
+        <!-- Card -->
+        <div class="login-card">
+          <el-form
+            ref="formRef"
+            :model="formData"
+            :rules="formRules"
+            label-position="top"
+            size="large"
+            class="login-form"
+            @submit.prevent="handleSubmit"
+          >
+            <!-- Username -->
+            <el-form-item label="Tên đăng nhập" prop="username" class="form-item">
+              <el-input
+                v-model="formData.username"
+                placeholder="Nhập tên đăng nhập"
+                :prefix-icon="UserIcon"
+                autocomplete="username"
+                :disabled="authStore.isLoading"
+                clearable
+              />
+            </el-form-item>
+
+            <!-- Password -->
+            <el-form-item prop="password" class="form-item">
+              <template #label>
+                <div class="password-label-row">
+                  <span class="password-label-text">Mật khẩu</span>
+                  <a href="#" class="forgot-link">Quên mật khẩu?</a>
+                </div>
+              </template>
+              <el-input
+                v-model="formData.password"
+                type="password"
+                placeholder="••••••••"
+                :prefix-icon="LockIcon"
+                show-password
+                autocomplete="current-password"
+                :disabled="authStore.isLoading"
+              />
+            </el-form-item>
+
+            <!-- Remember me -->
+            <div class="remember-row">
+              <el-checkbox v-model="rememberMe" class="remember-checkbox">
+                Ghi nhớ đăng nhập trong 30 ngày
+              </el-checkbox>
+            </div>
+
+            <!-- API error -->
+            <el-alert
+              v-if="authStore.error"
+              :title="authStore.error"
+              type="error"
+              show-icon
+              :closable="false"
+              class="api-error"
+            />
+
+            <!-- Submit -->
+            <el-button
+              type="primary"
+              native-type="submit"
+              :loading="authStore.isLoading"
+              :disabled="authStore.isLoading"
+              class="submit-btn"
+              size="large"
+            >
+              {{ authStore.isLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+            </el-button>
+          </el-form>
+
+          <!-- Divider -->
+          <div class="divider" aria-hidden="true">
+            <div class="divider__line"></div>
+            <span class="divider__text">Hoặc tiếp tục với</span>
+            <div class="divider__line"></div>
+          </div>
+
+          <!-- Social buttons -->
+          <div class="social-grid">
+            <button type="button" class="social-btn" aria-label="Đăng nhập với Google">
+              <img
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                alt=""
+                class="social-btn__img"
+                aria-hidden="true"
+              />
+              <span class="social-btn__label">Google</span>
+            </button>
+            <button type="button" class="social-btn" aria-label="Đăng nhập với SSO">
+              <el-icon class="social-btn__icon"><Monitor /></el-icon>
+              <span class="social-btn__label">SSO</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Register prompt -->
+        <p class="register-prompt">
+          Chưa có tài khoản?
+          <router-link to="/register" class="register-link">Tạo tài khoản</router-link>
+        </p>
       </div>
+    </main>
 
-      <!-- Form -->
-      <el-form
-        ref="formRef"
-        :model="formData"
-        label-position="top"
-        size="large"
-        class="login-form"
-        @submit.prevent="handleSubmit"
-      >
-        <!-- Username -->
-        <el-form-item label="Tên đăng nhập" class="form-item">
-          <el-input
-            v-model="formData.username"
-            placeholder="Nhập tên đăng nhập"
-            :prefix-icon="User"
-            autocomplete="username"
-            :disabled="authStore.isLoading"
-            @blur="validateField('username')"
-          />
-          <p v-if="errors.username" class="field-error" role="alert">
-            {{ errors.username }}
-          </p>
-        </el-form-item>
+    <!-- ── Page footer ──────────────────────────────────────────────────── -->
+    <footer class="page-footer">
+      <p class="page-footer__copy">© 2024 TaskFlow Enterprise Workspace. All rights reserved.</p>
+      <nav class="page-footer__links" aria-label="Footer">
+        <a href="#" class="page-footer__link">Chính sách bảo mật</a>
+        <a href="#" class="page-footer__link">Điều khoản dịch vụ</a>
+        <a href="#" class="page-footer__link">Hỗ trợ</a>
+      </nav>
+    </footer>
 
-        <!-- Password -->
-        <el-form-item label="Mật khẩu" class="form-item">
-          <el-input
-            v-model="formData.password"
-            type="password"
-            placeholder="Nhập mật khẩu"
-            :prefix-icon="Lock"
-            show-password
-            autocomplete="current-password"
-            :disabled="authStore.isLoading"
-            @blur="validateField('password')"
-          />
-          <p v-if="errors.password" class="field-error" role="alert">
-            {{ errors.password }}
-          </p>
-        </el-form-item>
-
-        <!-- API-level error (e.g. wrong credentials) -->
-        <el-alert
-          v-if="authStore.error"
-          :title="authStore.error"
-          type="error"
-          show-icon
-          :closable="false"
-          class="api-error"
-        />
-
-        <!-- Submit -->
-        <el-button
-          type="primary"
-          native-type="submit"
-          :loading="authStore.isLoading"
-          :disabled="authStore.isLoading"
-          class="submit-btn"
-          @click="handleSubmit"
-        >
-          {{ authStore.isLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
-        </el-button>
-      </el-form>
-
-      <!-- Footer link -->
-      <p class="login-footer">
-        Chưa có tài khoản?
-        <router-link to="/register" class="footer-link">Đăng ký ngay</router-link>
-      </p>
-    </div>
+    <!-- ── Enterprise tip (desktop only) ───────────────────────────────── -->
+    <aside class="enterprise-tip" aria-label="Enterprise tip">
+      <div class="enterprise-tip__icon-wrap" aria-hidden="true">
+        <el-icon :size="22" color="#004ac6"><Opportunity /></el-icon>
+      </div>
+      <div>
+        <p class="enterprise-tip__title">Enterprise Tip</p>
+        <p class="enterprise-tip__body">
+          Sử dụng xác thực đa yếu tố để bảo vệ dữ liệu dự án của bạn an toàn và tuân thủ.
+        </p>
+      </div>
+    </aside>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useForm } from 'vee-validate'
-import * as yup from 'yup'
-import { User, Lock } from '@element-plus/icons-vue'
+import {
+  User as UserIcon,
+  Lock as LockIcon,
+  Check,
+  Monitor,
+  Opportunity,
+} from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-// ── Validation schema ────────────────────────────────────────────────────────
-const loginSchema = yup.object({
-  username: yup.string().required('Tên đăng nhập không được để trống'),
-  password: yup.string().required('Mật khẩu không được để trống'),
-})
+// ── Template ref ──────────────────────────────────────────────────────────────
+const formRef = ref(null)
 
-// ── VeeValidate setup ────────────────────────────────────────────────────────
-const { handleSubmit: veeHandleSubmit, errors, validateField, defineField } = useForm({
-  validationSchema: loginSchema,
-})
-
-// defineField returns [modelValue, attrs]; we bind the value into a reactive object
-const [usernameField] = defineField('username')
-const [passwordField] = defineField('password')
-
-// Keep a single reactive object for el-input v-model binding
+// ── Form state ────────────────────────────────────────────────────────────────
 const formData = reactive({
-  get username() { return usernameField.value ?? '' },
-  set username(v) { usernameField.value = v },
-  get password() { return passwordField.value ?? '' },
-  set password(v) { passwordField.value = v },
+  username: '',
+  password: '',
 })
 
-// ── Submit handler ───────────────────────────────────────────────────────────
-const handleSubmit = veeHandleSubmit(async (values) => {
-  await authStore.login(values)
+const rememberMe = ref(false)
+
+// ── Validation rules ──────────────────────────────────────────────────────────
+const formRules = {
+  username: [{ required: true, message: 'Tên đăng nhập không được để trống', trigger: 'blur' }],
+  password: [{ required: true, message: 'Mật khẩu không được để trống', trigger: 'blur' }],
+}
+
+/**
+ * Handle form submission — validate via ElForm then call auth store login.
+ */
+const handleSubmit = async () => {
+  const isValid = await formRef.value?.validate().catch(() => false)
+  if (!isValid) return
+
+  await authStore.login({
+    username: formData.username,
+    password: formData.password,
+  })
 
   if (authStore.isAuthenticated) {
     router.push('/dashboard')
   }
-})
+}
 </script>
 
 <style scoped>
-/* ── Page layout ─────────────────────────────────────────────────────────── */
+/* ── Design tokens (DESIGN.md) ───────────────────────────────────────────────── */
+.login-page {
+  --primary: #004ac6;
+  --primary-container: #2563eb;
+  --surface: #faf8ff;
+  --surface-container: #ededf9;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f3fe;
+  --on-surface: #191b23;
+  --on-surface-variant: #434655;
+  --outline: #737686;
+  --outline-variant: #c3c6d7;
+  --border-subtle: #e2e8f0;
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+}
+
+/* ── Page shell ──────────────────────────────────────────────────────────────── */
 .login-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
+  background-color: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Background blobs ────────────────────────────────────────────────────────── */
+.bg-blob {
+  position: absolute;
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.bg-blob--tl {
+  top: -10%;
+  left: -10%;
+  background: rgba(0, 74, 198, 0.05);
+  filter: blur(120px);
+}
+
+.bg-blob--br {
+  bottom: -10%;
+  right: -10%;
+  background: rgba(80, 95, 118, 0.05);
+  filter: blur(120px);
+}
+
+/* ── Main content ────────────────────────────────────────────────────────────── */
+.login-main {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 24px;
+  padding: 48px 24px;
+  position: relative;
+  z-index: 1;
 }
 
-/* ── Card ────────────────────────────────────────────────────────────────── */
-.login-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 40px 36px;
+.login-container {
   width: 100%;
-  max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* ── Header ──────────────────────────────────────────────────────────────── */
-.login-header {
+/* ── Brand ───────────────────────────────────────────────────────────────────── */
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
 
-.login-logo {
+.brand-mark {
+  width: 48px;
   height: 48px;
-  width: auto;
+  background-color: var(--primary);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 74, 198, 0.3);
 }
 
 .login-title {
+  /* h1 — DESIGN.md */
   font-size: 24px;
-  font-weight: 700;
-  color: #303133;
-  margin: 0 0 6px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+  color: var(--on-surface);
+  margin: 0 0 8px;
 }
 
 .login-subtitle {
+  /* body-base — DESIGN.md */
   font-size: 14px;
-  color: #909399;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--on-surface-variant);
   margin: 0;
+  max-width: 360px;
 }
 
-/* ── Form ────────────────────────────────────────────────────────────────── */
+/* ── Card ────────────────────────────────────────────────────────────────────── */
+.login-card {
+  width: 100%;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Form ────────────────────────────────────────────────────────────────────── */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+}
+
+/* label-caps token — DESIGN.md */
+.login-form :deep(.el-form-item__label) {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  padding-bottom: 6px;
+  width: 100%;
 }
 
 .form-item {
-  margin-bottom: 8px;
+  margin-bottom: 20px;
 }
 
-/* Inline field error */
-.field-error {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #f56c6c;
-  line-height: 1.4;
+/* Input border radius */
+.login-form :deep(.el-input__wrapper) {
+  border-radius: 8px;
 }
 
-/* API-level error alert */
-.api-error {
-  margin-bottom: 12px;
-}
-
-/* Submit button */
-.submit-btn {
+/* ── Password label row (label + forgot link) ────────────────────────────────── */
+.password-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
-  margin-top: 8px;
-  height: 44px;
-  font-size: 15px;
-  font-weight: 600;
 }
 
-/* ── Footer ──────────────────────────────────────────────────────────────── */
-.login-footer {
-  text-align: center;
-  margin-top: 24px;
-  font-size: 14px;
-  color: #606266;
+.password-label-text {
+  /* label-caps — DESIGN.md */
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
 }
 
-.footer-link {
-  color: #409eff;
+.forgot-link {
+  /* body-sm — DESIGN.md */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--primary);
   text-decoration: none;
-  font-weight: 500;
-  margin-left: 4px;
 }
 
-.footer-link:hover {
+.forgot-link:hover {
   text-decoration: underline;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
+/* ── Remember me ─────────────────────────────────────────────────────────────── */
+.remember-row {
+  margin-bottom: 20px;
+}
+
+.remember-checkbox :deep(.el-checkbox__label) {
+  /* body-sm — DESIGN.md */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--on-surface-variant);
+}
+
+.remember-checkbox :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ── API error ───────────────────────────────────────────────────────────────── */
+.api-error {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+/* ── Submit button ───────────────────────────────────────────────────────────── */
+.submit-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+  --el-button-bg-color: var(--primary);
+  --el-button-border-color: var(--primary);
+  --el-button-hover-bg-color: var(--primary-container);
+  --el-button-hover-border-color: var(--primary-container);
+  --el-button-active-bg-color: var(--primary);
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────────── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 20px;
+}
+
+.divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--outline-variant);
+}
+
+.divider__text {
+  /* label-caps — DESIGN.md */
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--outline);
+  white-space: nowrap;
+}
+
+/* ── Social buttons ──────────────────────────────────────────────────────────── */
+.social-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  font-family: inherit;
+}
+
+.social-btn:hover {
+  background: var(--surface-container-low);
+}
+
+.social-btn__img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.social-btn__icon {
+  font-size: 18px;
+  color: var(--on-surface);
+}
+
+.social-btn__label {
+  /* body-sm semibold — DESIGN.md */
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--on-surface-variant);
+}
+
+/* ── Register prompt ─────────────────────────────────────────────────────────── */
+.register-prompt {
+  margin-top: 28px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--on-surface-variant);
+  text-align: center;
+}
+
+.register-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Page footer ─────────────────────────────────────────────────────────────── */
+.page-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.page-footer__copy {
+  /* body-sm — DESIGN.md */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--outline);
+  margin: 0;
+  text-align: center;
+}
+
+.page-footer__links {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.page-footer__link {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--outline);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.page-footer__link:hover {
+  color: var(--primary);
+}
+
+/* ── Enterprise tip (desktop only) ──────────────────────────────────────────── */
+.enterprise-tip {
+  position: fixed;
+  bottom: 32px;
+  left: 32px;
+  display: none;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--surface-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 280px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+}
+
+.enterprise-tip__icon-wrap {
+  background: rgba(0, 74, 198, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enterprise-tip__title {
+  /* h3 — DESIGN.md */
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--on-surface);
+  margin: 0 0 4px;
+}
+
+.enterprise-tip__body {
+  /* body-sm — DESIGN.md */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--on-surface-variant);
+  margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+  .enterprise-tip {
+    display: flex;
+  }
+
+  .page-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 20px 48px;
+  }
+}
+
 @media (max-width: 480px) {
   .login-card {
-    padding: 28px 20px;
+    padding: 24px 20px;
   }
 
   .login-title {
     font-size: 20px;
+  }
+
+  .social-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

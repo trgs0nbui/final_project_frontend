@@ -43,3 +43,7 @@ __screenshots__/
 
 # kiro specs
 .kiro/
+
+# skill
+SKILL.md
+DESIGN.md
