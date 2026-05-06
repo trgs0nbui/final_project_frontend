@@ -1,39 +1,50 @@
 <script setup>
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import AppNavBar from '@/components/common/AppNavBar.vue'
+import AppSidebar from '@/components/common/AppSidebar.vue'
+import AppTopbar from '@/components/common/AppTopbar.vue'
 
 const authStore = useAuthStore()
 </script>
 
 <template>
-  <el-container class="app-layout">
-    <el-header v-if="authStore.isAuthenticated" class="app-header">
-      <AppNavBar />
-    </el-header>
-
-    <!-- Remove padding for unauthenticated pages (login / register) so they
+  <!-- Authenticated layout: fixed sidebar + sticky topbar + scrollable content -->
+  <div v-if="authStore.isAuthenticated" class="app-layout">
+    <AppSidebar />
+    <div class="app-layout__body">
+      <AppTopbar />
+      <!-- Remove padding for unauthenticated pages (login / register) so they
          can manage their own full-page layout. -->
-    <el-main :class="['app-main', { 'app-main--no-padding': !authStore.isAuthenticated }]">
-      <RouterView />
-    </el-main>
-  </el-container>
+    <main :class="['app-main', { 'app-layout__main--no-padding': !authStore.isAuthenticated }]">
+        <RouterView />
+      </main>
+    </div>
+  </div>
+
+  <!-- Unauthenticated layout: full-page (login / register manage their own layout) -->
+  <RouterView v-else />
 </template>
 
 <style scoped>
 .app-layout {
+  display: flex;
   min-height: 100vh;
-  flex-direction: column;
+  background-color: #faf8ff;
 }
 
-.app-header {
-  padding: 0;
-  height: auto;
-}
-
-.app-main {
-  padding: 24px;
+/* Offset the fixed 260px sidebar */
+.app-layout__body {
+  margin-left: 260px;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-layout__main {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
 }
 
 .app-main--no-padding {

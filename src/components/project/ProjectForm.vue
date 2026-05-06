@@ -36,27 +36,32 @@ const projectTypeOptions = [
 ]
 
 const categoryOptions = [
-  { value: 'web',       label: 'Web Development' },
-  { value: 'mobile',    label: 'Mobile Development' },
-  { value: 'data',      label: 'Data & Analytics' },
-  { value: 'devops',    label: 'DevOps & Infrastructure' },
+  { value: 'web', label: 'Web Development' },
+  { value: 'mobile', label: 'Mobile Development' },
+  { value: 'data', label: 'Data & Analytics' },
+  { value: 'devops', label: 'DevOps & Infrastructure' },
   { value: 'marketing', label: 'Marketing' },
-  { value: 'finance',   label: 'Finance' },
-  { value: 'hr',        label: 'Human Resources' },
-  { value: 'other',     label: 'Khác (Other)' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'hr', label: 'Human Resources' },
+  { value: 'other', label: 'Khác (Other)' },
 ]
 
 // ── VeeValidate ──────────────────────────────────────────────────────────────
 
-const { handleSubmit: veeHandleSubmit, errors, defineField, resetForm } = useForm({
+const {
+  handleSubmit: veeHandleSubmit,
+  errors,
+  defineField,
+  resetForm,
+} = useForm({
   validationSchema: projectSchema,
 })
 
-const [nameValue,        nameAttrs]        = defineField('name')
-const [keyValue,         keyAttrs]         = defineField('key')
+const [nameValue, nameAttrs] = defineField('name')
+const [keyValue, keyAttrs] = defineField('key')
 const [descriptionValue, descriptionAttrs] = defineField('description')
 const [projectTypeValue, projectTypeAttrs] = defineField('project_type')
-const [categoryValue,    categoryAttrs]    = defineField('category')
+const [categoryValue, categoryAttrs] = defineField('category')
 
 // ── Auto-generate key from name ──────────────────────────────────────────────
 
@@ -93,11 +98,11 @@ watch(
       keyManuallyEdited.value = false
       resetForm({
         values: {
-          name:         props.project?.name         ?? '',
-          key:          props.project?.key          ?? '',
-          description:  props.project?.description  ?? '',
+          name: props.project?.name ?? '',
+          key: props.project?.key ?? '',
+          description: props.project?.description ?? '',
           project_type: props.project?.project_type ?? 'software',
-          category:     props.project?.category     ?? 'other',
+          category: props.project?.category ?? 'other',
         },
       })
     }
@@ -116,11 +121,11 @@ const handleSubmit = veeHandleSubmit(async (values) => {
   isSubmitting.value = true
   try {
     emit('submit', {
-      name:         values.name,
-      key:          values.key,
-      description:  values.description ?? '',
+      name: values.name,
+      key: values.key,
+      description: values.description ?? '',
       project_type: values.project_type,
-      category:     values.category ?? 'other',
+      category: values.category ?? 'other',
     })
   } finally {
     isSubmitting.value = false
@@ -202,7 +207,9 @@ function handleClose() {
               :value="opt.value"
             />
           </el-select>
-          <p v-if="errors.project_type" class="field-error" role="alert">{{ errors.project_type }}</p>
+          <p v-if="errors.project_type" class="field-error" role="alert">
+            {{ errors.project_type }}
+          </p>
         </el-form-item>
 
         <el-form-item label="Danh mục" class="form-col">
@@ -250,8 +257,34 @@ function handleClose() {
 </template>
 
 <style scoped>
+/* ── Design tokens ───────────────────────────────────────────────────────────── */
+.project-form {
+  --on-surface-variant: #434655;
+  --outline: #737686;
+  --error: #ba1a1a;
+  --primary: #004ac6;
+}
+
 .project-form {
   padding: 0 4px;
+}
+
+/* label-caps token */
+.project-form :deep(.el-form-item__label) {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  padding-bottom: 6px;
+}
+
+/* Input border radius */
+.project-form :deep(.el-input__wrapper),
+.project-form :deep(.el-textarea__inner),
+.project-form :deep(.el-select .el-input__wrapper) {
+  border-radius: 8px;
 }
 
 .form-row {
@@ -267,21 +300,21 @@ function handleClose() {
 .field-error {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #f56c6c;
+  color: var(--error);
   line-height: 1.4;
 }
 
 .field-hint {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #909399;
+  color: var(--outline);
   line-height: 1.4;
 }
 
 .key-hint {
   margin-left: 4px;
   cursor: help;
-  color: #909399;
+  color: var(--outline);
   vertical-align: middle;
 }
 
