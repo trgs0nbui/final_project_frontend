@@ -13,9 +13,7 @@ const authStore = useAuthStore()
     <AppSidebar />
     <div class="app-layout__body">
       <AppTopbar />
-      <!-- Remove padding for unauthenticated pages (login / register) so they
-         can manage their own full-page layout. -->
-    <main :class="['app-main', { 'app-layout__main--no-padding': !authStore.isAuthenticated }]">
+      <main class="app-layout__main">
         <RouterView />
       </main>
     </div>
@@ -45,6 +43,8 @@ const authStore = useAuthStore()
   flex: 1;
   padding: 32px;
   overflow-y: auto;
+  /* Prevent content from overflowing the flex column */
+  min-width: 0;
 }
 
 .app-main--no-padding {

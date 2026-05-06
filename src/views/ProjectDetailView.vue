@@ -4,8 +4,6 @@
  *
  * Hiển thị thông tin dự án và danh sách công việc dưới dạng KanbanBoard hoặc TaskTable.
  * Hỗ trợ tạo, chỉnh sửa, xóa task và kéo thả để thay đổi trạng thái.
- *
- * Yêu cầu: 7.1, 7.2, 7.4, 7.5, 7.6, 7.7, 8.6, 8.7, 8.8, 8.9, 10.1, 10.4, 10.5, 10.6, 10.7
  */
 import { ref, computed, onMounted, watch, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -27,129 +25,72 @@ const taskStore = useTaskStore()
 const projectStore = useProjectStore()
 const authStore = useAuthStore()
 
-// ── provide/inject: chia sẻ projectId với deeply nested components (Req 10.7) ──
-
+// ── provide/inject: chia sẻ projectId với deeply nested components ────────────
 const projectId = computed(() => route.params.id)
 provide('projectId', projectId)
 
-// ── State ────────────────────────────────────────────────────────────────────
-
-/** Chế độ hiển thị: 'kanban' hoặc 'table' (Req 7.5) */
+// ── State ─────────────────────────────────────────────────────────────────────
 const viewMode = ref('kanban')
-
-/** Kiểm soát hiển thị dialog TaskForm */
 const isTaskFormVisible = ref(false)
-
-/** Task đang được chỉnh sửa; null khi tạo mới */
 const editingTask = ref(null)
-
-/** Chế độ form: 'create' hoặc 'edit' */
 const formMode = ref('create')
-
-/** Trạng thái đang xử lý submit form */
 const isSubmitting = ref(false)
 
-// ── Computed ─────────────────────────────────────────────────────────────────
-
-/** Danh sách tasks từ store */
+// ── Computed ──────────────────────────────────────────────────────────────────
 const tasks = computed(() => taskStore.tasks)
-
-/** Trạng thái loading của task store */
 const isTaskLoading = computed(() => taskStore.isLoading)
-
-/** Trạng thái loading của project store */
 const isProjectLoading = computed(() => projectStore.isLoading)
-
-/** Thông tin dự án hiện tại */
 const currentProject = computed(() => projectStore.currentProject)
 
-/** Kiểm tra user hiện tại có phải owner của project không */
 const isOwner = computed(() =>
   currentProject.value && authStore.user
     ? String(currentProject.value.owner?.id) === String(authStore.user.id)
     : false,
 )
 
-/** Kiểm soát hiển thị dialog thêm thành viên */
 const isMemberDialogVisible = ref(false)
 
-/** Tiêu đề trang */
 const pageTitle = computed(() =>
   currentProject.value ? currentProject.value.name : 'Chi tiết dự án',
 )
 
-/** Tiêu đề dialog TaskForm */
 const dialogTitle = computed(() =>
   formMode.value === 'edit' ? 'Chỉnh sửa công việc' : 'Tạo công việc mới',
 )
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
-
-/**
- * Fetch project details và tasks cho project hiện tại.
- * @param {string|number} id - Project ID
- */
 async function fetchProjectData(id) {
   if (!id) return
-
   try {
-    await Promise.all([
-      projectStore.fetchProjectById(id),
-      taskStore.fetchTasks(id),
-    ])
-
-    // Xử lý lỗi từ store sau khi fetch
-    if (projectStore.error) {
-      handleApiError({ message: projectStore.error }, true)
-    }
-    if (taskStore.error) {
-      handleApiError({ message: taskStore.error }, true)
-    }
+    await Promise.all([projectStore.fetchProjectById(id), taskStore.fetchTasks(id)])
+    if (projectStore.error) handleApiError({ message: projectStore.error }, true)
+    if (taskStore.error) handleApiError({ message: taskStore.error }, true)
   } catch (err) {
     handleApiError(err, true)
   }
 }
 
-// ── Lifecycle (Req 10.4) ──────────────────────────────────────────────────────
-
 onMounted(async () => {
   await fetchProjectData(route.params.id)
 })
 
-// ── Watch route params (Req 10.6) ─────────────────────────────────────────────
-
-/**
- * Theo dõi thay đổi route params để fetch lại dữ liệu khi chuyển project.
- * Watcher được tự động dọn dẹp khi component unmount (Req 10.5).
- */
 watch(
   () => route.params.id,
   async (newId, oldId) => {
-    if (newId && newId !== oldId) {
-      await fetchProjectData(newId)
-    }
+    if (newId && newId !== oldId) await fetchProjectData(newId)
   },
 )
 
-// ── View toggle (Req 7.5) ─────────────────────────────────────────────────────
-
+// ── Handlers ──────────────────────────────────────────────────────────────────
 function setViewMode(mode) {
   viewMode.value = mode
 }
 
-// ── Drag & drop handler (Req 7.4) ─────────────────────────────────────────────
-
-/**
- * Xử lý khi task được kéo thả sang cột khác trong KanbanBoard.
- * Gọi TaskStore.patchTask() để cập nhật status qua PATCH API.
- * @param {number} taskId
- * @param {string} newStatus
- */
 async function handleTaskMoved(taskId, newStatus) {
   try {
     const updated = await taskStore.patchTask(taskId, { status: newStatus })
     if (updated) {
-      ElMessage.success('Cập nhật trạng thái công việc thành công!')
+      ElMessage.success('Cập nhật trạng thái thành công!')
     } else if (taskStore.error) {
       ElMessage.error(taskStore.error)
     }
@@ -158,9 +99,6 @@ async function handleTaskMoved(taskId, newStatus) {
   }
 }
 
-// ── Task CRUD ─────────────────────────────────────────────────────────────────
-
-/** Mở dialog tạo task mới (Req 8.6) */
 function openCreateTask() {
   editingTask.value = null
   formMode.value = 'create'
@@ -168,30 +106,30 @@ function openCreateTask() {
 }
 
 /**
- * Mở dialog chỉnh sửa task (Req 8.7).
- * @param {Object} task - Task cần chỉnh sửa
+ * Mở form tạo task với status được chọn sẵn (từ nút + trong cột Kanban).
+ * @param {string} status
  */
+function openCreateTaskWithStatus(status) {
+  editingTask.value = { status } // TaskForm sẽ dùng giá trị này làm default
+  formMode.value = 'create'
+  isTaskFormVisible.value = true
+}
+
 function openEditTask(task) {
   editingTask.value = task
   formMode.value = 'edit'
   isTaskFormVisible.value = true
 }
 
-/** Đóng dialog TaskForm */
 function closeTaskForm() {
   isTaskFormVisible.value = false
   editingTask.value = null
 }
 
-/**
- * Xử lý submit TaskForm — tạo mới hoặc cập nhật task.
- * @param {Object} formData - Dữ liệu từ TaskForm
- */
 async function handleTaskFormSubmit(formData) {
   isSubmitting.value = true
   try {
     if (formMode.value === 'edit' && editingTask.value) {
-      // Chỉnh sửa task (Req 8.7)
       const updated = await taskStore.updateTask(editingTask.value.id, formData)
       if (updated) {
         ElMessage.success('Cập nhật công việc thành công!')
@@ -200,7 +138,6 @@ async function handleTaskFormSubmit(formData) {
         ElMessage.error(taskStore.error)
       }
     } else {
-      // Tạo task mới (Req 8.6)
       const created = await taskStore.createTask(route.params.id, formData)
       if (created) {
         ElMessage.success('Tạo công việc thành công!')
@@ -216,10 +153,6 @@ async function handleTaskFormSubmit(formData) {
   }
 }
 
-/**
- * Xác nhận và xóa task (Req 8.8).
- * @param {Object} task - Task cần xóa
- */
 async function handleDeleteTask(task) {
   try {
     await ElMessageBox.confirm(
@@ -232,12 +165,9 @@ async function handleDeleteTask(task) {
         confirmButtonClass: 'el-button--danger',
       },
     )
-
-    // Người dùng xác nhận xóa
     await taskStore.deleteTask(task.id)
-
     if (!taskStore.error) {
-      ElMessage.success('Xóa công việc thành công!') // Req 8.9
+      ElMessage.success('Xóa công việc thành công!')
     } else {
       ElMessage.error(taskStore.error)
     }
@@ -249,70 +179,103 @@ async function handleDeleteTask(task) {
 
 <template>
   <div class="project-detail">
-    <!-- Loading toàn trang khi fetch project lần đầu -->
+    <!-- Toàn trang loading khi fetch project lần đầu -->
     <div v-if="isProjectLoading && !currentProject" class="project-detail__page-loading">
       <LoadingSpinner size="large" />
     </div>
 
     <template v-else>
-      <!-- Header -->
-      <div class="project-detail__header">
-        <div class="project-detail__title-group">
-          <el-button
-            text
-            class="project-detail__back-btn"
-            @click="router.push('/dashboard')"
-          >
-            ← Quay lại
-          </el-button>
-          <h1 class="project-detail__title">{{ pageTitle }}</h1>
-          <p v-if="currentProject?.description" class="project-detail__description">
-            {{ currentProject.description }}
-          </p>
+      <!-- ── Project header ──────────────────────────────────────────────── -->
+      <section class="project-detail__header">
+        <div class="project-detail__header-top">
+          <!-- Breadcrumb -->
+          <nav class="project-detail__breadcrumb" aria-label="Điều hướng">
+            <button class="breadcrumb__link" @click="router.push('/dashboard')">Dự án</button>
+            <span class="breadcrumb__sep" aria-hidden="true">›</span>
+            <span class="breadcrumb__current">{{ pageTitle }}</span>
+          </nav>
+
+          <!-- Title row -->
+          <div class="project-detail__title-row">
+            <div class="project-detail__title-group">
+              <h2 class="project-detail__title">
+                {{ pageTitle }}
+                <span v-if="currentProject?.key" class="project-detail__key-badge">
+                  {{ currentProject.key }}
+                </span>
+              </h2>
+              <p v-if="currentProject?.description" class="project-detail__description">
+                {{ currentProject.description }}
+              </p>
+            </div>
+
+            <!-- Right: members + actions -->
+            <div class="project-detail__header-actions">
+              <!-- Member avatars -->
+              <div v-if="currentProject?.members?.length" class="member-stack">
+                <div
+                  v-for="(member, i) in currentProject.members.slice(0, 4)"
+                  :key="member.id"
+                  class="member-stack__avatar"
+                  :title="member.username"
+                  :style="{ zIndex: 10 - i }"
+                >
+                  {{ member.username?.slice(0, 2).toUpperCase() }}
+                </div>
+                <div
+                  v-if="currentProject.members.length > 4"
+                  class="member-stack__avatar member-stack__avatar--more"
+                >
+                  +{{ currentProject.members.length - 4 }}
+                </div>
+              </div>
+
+              <!-- Thêm thành viên (chỉ owner) -->
+              <button
+                v-if="isOwner"
+                class="project-detail__btn project-detail__btn--outline"
+                @click="isMemberDialogVisible = true"
+              >
+                <el-icon :size="16"><UserFilled /></el-icon>
+                <span>Thêm thành viên</span>
+              </button>
+
+              <!-- Tạo công việc -->
+              <button
+                class="project-detail__btn project-detail__btn--primary"
+                @click="openCreateTask"
+              >
+                <el-icon :size="16"><Plus /></el-icon>
+                <span>Tạo công việc</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="project-detail__actions">
-          <!-- Nút chuyển đổi view (Req 7.5) -->
-          <el-button-group class="project-detail__view-toggle">
-            <el-button
-              :type="viewMode === 'kanban' ? 'primary' : 'default'"
-              :icon="Grid"
-              title="Kanban view"
+        <!-- ── View switcher ──────────────────────────────────────────────── -->
+        <div class="project-detail__toolbar">
+          <div class="view-toggle" role="group" aria-label="Chế độ xem">
+            <button
+              class="view-toggle__btn"
+              :class="{ 'view-toggle__btn--active': viewMode === 'kanban' }"
               @click="setViewMode('kanban')"
             >
-              Kanban
-            </el-button>
-            <el-button
-              :type="viewMode === 'table' ? 'primary' : 'default'"
-              :icon="List"
-              title="Table view"
+              <el-icon :size="16"><Grid /></el-icon>
+              <span>Kanban</span>
+            </button>
+            <button
+              class="view-toggle__btn"
+              :class="{ 'view-toggle__btn--active': viewMode === 'table' }"
               @click="setViewMode('table')"
             >
-              Bảng
-            </el-button>
-          </el-button-group>
-
-          <!-- Nút thêm thành viên — chỉ hiển thị với owner -->
-          <el-button
-            v-if="isOwner"
-            :icon="UserFilled"
-            @click="isMemberDialogVisible = true"
-          >
-            Thêm thành viên
-          </el-button>
-
-          <!-- Nút tạo task mới (Req 8.6) -->
-          <el-button
-            type="primary"
-            :icon="Plus"
-            @click="openCreateTask"
-          >
-            Tạo công việc
-          </el-button>
+              <el-icon :size="16"><List /></el-icon>
+              <span>Bảng</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Lỗi API -->
+      <!-- ── API error ───────────────────────────────────────────────────── -->
       <el-alert
         v-if="taskStore.error && !isTaskLoading"
         :title="taskStore.error"
@@ -322,27 +285,30 @@ async function handleDeleteTask(task) {
         class="project-detail__error"
       />
 
-      <!-- Kanban view (Req 7.1, 7.3, 7.4) -->
+      <!-- ── Kanban view ─────────────────────────────────────────────────── -->
       <KanbanBoard
         v-if="viewMode === 'kanban'"
         :tasks="tasks"
         :is-loading="isTaskLoading"
+        :project-id="String(route.params.id)"
         @task-moved="handleTaskMoved"
         @edit-task="openEditTask"
         @delete-task="handleDeleteTask"
+        @add-task="openCreateTaskWithStatus"
       />
 
-      <!-- Table view (Req 7.6, 7.7) -->
+      <!-- ── Table view ──────────────────────────────────────────────────── -->
       <TaskTable
         v-else
         :tasks="tasks"
         :is-loading="isTaskLoading"
+        :project-id="String(route.params.id)"
         @edit-task="openEditTask"
         @delete-task="handleDeleteTask"
       />
     </template>
 
-    <!-- Dialog TaskForm (Req 8.6, 8.7) -->
+    <!-- ── TaskForm dialog ─────────────────────────────────────────────── -->
     <el-dialog
       v-model="isTaskFormVisible"
       :title="dialogTitle"
@@ -362,22 +328,46 @@ async function handleDeleteTask(task) {
       />
     </el-dialog>
 
-    <!-- Dialog thêm thành viên (chỉ owner) -->
+    <!-- ── Thêm thành viên dialog (chỉ owner) ─────────────────────────── -->
     <MemberSearchDialog
       v-if="isOwner"
       v-model:visible="isMemberDialogVisible"
       :project-id="String(route.params.id)"
       @member-added="() => {}"
     />
+
+    <!-- ── FAB ────────────────────────────────────────────────────────── -->
+    <button class="project-detail__fab" aria-label="Tạo công việc mới" @click="openCreateTask">
+      <el-icon :size="26"><Plus /></el-icon>
+    </button>
   </div>
 </template>
 
 <style scoped>
+/* ── Design tokens ───────────────────────────────────────────────────────────── */
+.project-detail {
+  --primary: #004ac6;
+  --primary-container: #2563eb;
+  --surface: #faf8ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f3fe;
+  --surface-container: #ededf9;
+  --surface-container-high: #e7e7f3;
+  --on-surface: #191b23;
+  --on-surface-variant: #434655;
+  --outline: #737686;
+  --outline-variant: #c3c6d7;
+  --border-subtle: #e2e8f0;
+}
+
+/* ── Page shell ──────────────────────────────────────────────────────────────── */
 .project-detail {
   max-width: 1400px;
   margin: 0 auto;
+  padding-bottom: 80px;
 }
 
+/* ── Page loading ────────────────────────────────────────────────────────────── */
 .project-detail__page-loading {
   display: flex;
   align-items: center;
@@ -385,13 +375,58 @@ async function handleDeleteTask(task) {
   min-height: 400px;
 }
 
+/* ── Header section ──────────────────────────────────────────────────────────── */
 .project-detail__header {
+  margin-bottom: 0;
+}
+
+.project-detail__header-top {
+  padding-bottom: 24px;
+}
+
+/* ── Breadcrumb ──────────────────────────────────────────────────────────────── */
+.project-detail__breadcrumb {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.breadcrumb__link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  /* body-sm — DESIGN.md */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--outline);
+  transition: color 0.15s;
+}
+
+.breadcrumb__link:hover {
+  color: var(--primary);
+}
+
+.breadcrumb__sep {
+  font-size: 13px;
+  color: var(--outline-variant);
+}
+
+.breadcrumb__current {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* ── Title row ───────────────────────────────────────────────────────────────── */
+.project-detail__title-row {
+  display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 24px;
+  gap: 24px;
   flex-wrap: wrap;
-  gap: 16px;
 }
 
 .project-detail__title-group {
@@ -400,53 +435,251 @@ async function handleDeleteTask(task) {
   gap: 4px;
 }
 
-.project-detail__back-btn {
-  align-self: flex-start;
-  padding: 0;
-  font-size: 13px;
-  color: #909399;
-  margin-bottom: 4px;
+.project-detail__title {
+  /* h1 — DESIGN.md */
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+  color: var(--on-surface);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.project-detail__title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #303133;
-  margin: 0;
+.project-detail__key-badge {
+  /* ui-table-header — DESIGN.md */
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--outline);
+  background: var(--surface-container-high);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .project-detail__description {
+  /* body-base — DESIGN.md */
   font-size: 14px;
-  color: #606266;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--on-surface-variant);
   margin: 0;
   max-width: 600px;
 }
 
-.project-detail__actions {
+/* ── Header actions ──────────────────────────────────────────────────────────── */
+.project-detail__header-actions {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
 }
 
-.project-detail__view-toggle {
-  flex-shrink: 0;
+/* ── Member avatar stack ─────────────────────────────────────────────────────── */
+.member-stack {
+  display: flex;
+  margin-right: 4px;
 }
 
+.member-stack__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  border: 2px solid var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: -8px;
+  cursor: default;
+  transition: transform 0.15s;
+}
+
+.member-stack__avatar:first-child {
+  margin-left: 0;
+}
+
+.member-stack__avatar:hover {
+  transform: translateY(-2px);
+}
+
+.member-stack__avatar--more {
+  background: var(--surface-container-high);
+  color: var(--outline);
+}
+
+/* ── Action buttons ──────────────────────────────────────────────────────────── */
+.project-detail__btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  /* body-sm semibold */
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    transform 0.1s;
+  border: none;
+}
+
+.project-detail__btn:active {
+  transform: scale(0.97);
+}
+
+.project-detail__btn--outline {
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--border-subtle);
+  color: var(--on-surface-variant);
+}
+
+.project-detail__btn--outline:hover {
+  background: var(--surface-container-low);
+}
+
+.project-detail__btn--primary {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 74, 198, 0.25);
+}
+
+.project-detail__btn--primary:hover {
+  background: var(--primary-container);
+}
+
+/* ── Toolbar (view switcher + filters) ───────────────────────────────────────── */
+.project-detail__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+/* ── View toggle ─────────────────────────────────────────────────────────────── */
+.view-toggle {
+  display: flex;
+  padding: 4px;
+  background: var(--surface-container-low);
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.view-toggle__btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--outline);
+  background: transparent;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.view-toggle__btn--active {
+  background: var(--surface-container-lowest);
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.view-toggle__btn:not(.view-toggle__btn--active):hover {
+  color: var(--on-surface);
+}
+
+/* ── Filter chips ────────────────────────────────────────────────────────────── */
+.project-detail__filter-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--outline);
+}
+
+.filter-chip strong {
+  color: var(--on-surface);
+  font-weight: 700;
+}
+
+/* ── Error ───────────────────────────────────────────────────────────────────── */
 .project-detail__error {
   margin-bottom: 20px;
+  border-radius: 8px;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
+/* ── FAB ─────────────────────────────────────────────────────────────────────── */
+.project-detail__fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 74, 198, 0.35);
+  transition:
+    box-shadow 0.2s,
+    transform 0.15s,
+    background-color 0.15s;
+  z-index: 30;
+}
+
+.project-detail__fab:hover {
+  box-shadow: 0 6px 20px rgba(0, 74, 198, 0.45);
+  transform: translateY(-2px);
+  background: var(--primary-container);
+}
+
+.project-detail__fab:active {
+  transform: scale(0.92);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .project-detail__header {
+  .project-detail__title-row {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .project-detail__actions {
+  .project-detail__header-actions {
     width: 100%;
-    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .project-detail__filter-info {
+    display: none;
   }
 }
 </style>
