@@ -29,7 +29,31 @@ const routes = [
     path: '/dashboard',
     name: 'dashboard',
     component: () => import('@/views/DashboardView.vue'),
-    meta: { requiresAuth: true, title: 'Dashboard' },
+    meta: { requiresAuth: true, title: 'Tổng quan' },
+  },
+  {
+    path: '/projects',
+    name: 'projects',
+    component: () => import('@/views/ProjectsView.vue'),
+    meta: { requiresAuth: true, title: 'Dự án' },
+  },
+  {
+    path: '/tasks',
+    name: 'tasks',
+    component: () => import('@/views/TasksView.vue'),
+    meta: { requiresAuth: true, title: 'Công việc' },
+  },
+  {
+    path: '/team',
+    name: 'team',
+    component: () => import('@/views/TeamView.vue'),
+    meta: { requiresAuth: true, title: 'Nhóm' },
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/views/SettingsView.vue'),
+    meta: { requiresAuth: true, title: 'Cài đặt' },
   },
   {
     path: '/profile',

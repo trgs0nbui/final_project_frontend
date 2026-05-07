@@ -224,6 +224,22 @@ export const useProjectStore = defineStore(
       }
     }
 
+    /**
+     * Fetch member stats for projects owned by the current user.
+     * GET /api/projects/member-stats/
+     * @returns {{ total_members: number, owned_projects: number } | null}
+     */
+    async function fetchMemberStats() {
+      error.value = null
+      try {
+        const response = await apiClient.get('/api/projects/member-stats/')
+        return response.data
+      } catch (err) {
+        error.value = err.message || 'Không thể tải thống kê thành viên.'
+        return null
+      }
+    }
+
     return {
       // State
       projects,
@@ -242,6 +258,7 @@ export const useProjectStore = defineStore(
       addMember,
       removeMember,
       searchUsersToAdd,
+      fetchMemberStats,
     }
   },
   {

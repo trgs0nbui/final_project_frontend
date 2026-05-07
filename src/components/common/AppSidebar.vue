@@ -18,7 +18,7 @@
         :key="item.to"
         :to="item.to"
         class="sidebar__nav-item"
-        active-class="sidebar__nav-item--active"
+        :class="{ 'sidebar__nav-item--active': isActive(item) }"
       >
         <el-icon :size="20"><component :is="item.icon" /></el-icon>
         <span class="sidebar__nav-label">{{ item.label }}</span>
@@ -36,9 +36,12 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { Check, Plus, Odometer, FolderOpened, List, User, Setting } from '@element-plus/icons-vue'
 
 const emit = defineEmits(['new-project'])
+const route = useRoute()
 
 /** Các mục điều hướng — icon từ @element-plus/icons-vue */
 const navItems = [
@@ -48,6 +51,18 @@ const navItems = [
   { to: '/team', label: 'Nhóm', icon: User },
   { to: '/settings', label: 'Cài đặt', icon: Setting },
 ]
+
+/**
+ * Kiểm tra active state cho từng nav item.
+ * - /projects cũng active khi đang ở /projects/:id hoặc /projects/:id/members
+ * - Các route khác dùng exact match
+ */
+function isActive(item) {
+  if (item.to === '/projects') {
+    return route.path === '/projects' || route.path.startsWith('/projects/')
+  }
+  return route.path === item.to
+}
 </script>
 
 <style scoped>
