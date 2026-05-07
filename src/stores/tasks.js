@@ -19,6 +19,9 @@ export const useTaskStore = defineStore('tasks', () => {
   // State
   const tasks = ref([]) // Task[]
   const currentTask = ref(null) // Task | null
+  const myTasks = ref([]) // Task[] — tasks assigned to current user
+  const myTasksTotal = ref(0)
+  const myTaskStats = ref(null) // { total_assigned, high_priority_todo, overdue, in_progress, done }
   const isLoading = ref(false)
   const error = ref(null)
 
@@ -174,6 +177,51 @@ export const useTaskStore = defineStore('tasks', () => {
   }
 
   /**
+   * Fetch tasks assigned to the current user across all projects.
+   * GET /api/tasks/
+   * @param {Object} [params] - Optional query params: { status, priority, search }
+   */
+  async function fetchMyTasks(params = {}) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await apiClient.get('/api/tasks/', { params })
+      const data = response.data
+
+      if (Array.isArray(data)) {
+        myTasks.value = data
+      } else {
+        myTasks.value = data.results ?? data
+        if (data.count !== undefined) {
+          myTasksTotal.value = data.count
+        }
+      }
+    } catch (err) {
+      error.value = err.message || 'Không thể tải danh sách công việc của bạn.'
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Fetch stats for tasks assigned to the current user.
+   * GET /api/tasks/stats/
+   * @returns {{ total_assigned, high_priority_todo, overdue, in_progress, done }}
+   */
+  async function fetchMyTaskStats() {
+    error.value = null
+    try {
+      const response = await apiClient.get('/api/tasks/stats/')
+      myTaskStats.value = response.data
+      return response.data
+    } catch (err) {
+      error.value = err.message || 'Không thể tải thống kê công việc.'
+      return null
+    }
+  }
+
+  /**
    * Helper: get the projectId for a given taskId from the local tasks array.
    * The API response includes a `project` field (UUID) on every task object.
    * @param {string} taskId
@@ -193,6 +241,9 @@ export const useTaskStore = defineStore('tasks', () => {
     // State
     tasks,
     currentTask,
+    myTasks,
+    myTasksTotal,
+    myTaskStats,
     isLoading,
     error,
     // Getters
@@ -203,5 +254,7 @@ export const useTaskStore = defineStore('tasks', () => {
     updateTask,
     patchTask,
     deleteTask,
+    fetchMyTasks,
+    fetchMyTaskStats,
   }
 })
