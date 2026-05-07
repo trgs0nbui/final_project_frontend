@@ -74,7 +74,17 @@
               show-icon
               :closable="false"
               class="api-error"
-            />
+            >
+              <template v-if="isEmailUnverifiedError" #default>
+                <p class="api-error__detail">{{ authStore.error }}</p>
+                <p class="api-error__hint">
+                  Chưa nhận được email?
+                  <router-link to="/verify-email/pending" class="api-error__link">
+                    Xem hướng dẫn xác thực
+                  </router-link>
+                </p>
+              </template>
+            </el-alert>
 
             <!-- Submit -->
             <el-button
@@ -148,7 +158,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   User as UserIcon,
@@ -172,6 +182,11 @@ const formData = reactive({
 })
 
 const rememberMe = ref(false)
+
+// Detect email-not-verified error to show extra hint
+const isEmailUnverifiedError = computed(() =>
+  authStore.error?.includes('chưa được xác thực') ?? false,
+)
 
 // ── Validation rules ──────────────────────────────────────────────────────────
 const formRules = {
@@ -399,6 +414,32 @@ const handleSubmit = async () => {
 .api-error {
   margin-bottom: 16px;
   border-radius: 8px;
+}
+
+.api-error__detail {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  margin: 0 0 6px;
+  color: var(--error);
+}
+
+.api-error__hint {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  margin: 0;
+  color: var(--on-surface-variant);
+}
+
+.api-error__link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.api-error__link:hover {
+  text-decoration: underline;
 }
 
 /* ── Submit button ───────────────────────────────────────────────────────────── */

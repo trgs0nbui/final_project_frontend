@@ -210,15 +210,15 @@ const handleSubmit = async () => {
   const isValid = await formRef.value?.validate().catch(() => false)
   if (!isValid) return
 
-  await authStore.register({
+  const result = await authStore.register({
     username: formData.username,
     email: formData.email,
     password: formData.password,
     confirmPassword: formData.confirmPassword,
   })
 
-  if (authStore.isAuthenticated) {
-    router.push('/dashboard')
+  if (result?.success) {
+    router.push({ name: 'verify-email-pending', query: { email: result.email } })
   }
 }
 </script>

@@ -56,9 +56,10 @@ export const useAuthStore = defineStore(
     }
 
     /**
-     * Register a new account, then auto-login.
-     * POST /api/auth/register/ — then calls login() internally.
+     * Register a new account.
+     * POST /api/auth/register/ — does NOT auto-login; user must verify email first.
      * @param {{ username: string, email: string, password: string, confirmPassword: string }} userData
+     * @returns {{ success: boolean, email?: string }} result object
      */
     async function register(userData) {
       isLoading.value = true
@@ -72,10 +73,12 @@ export const useAuthStore = defineStore(
           confirm_password: userData.confirmPassword,
         })
 
-        // Auto-login after successful registration
-        await login({ username: userData.username, password: userData.password })
+        // Registration successful — user must verify email before logging in
+        return { success: true, email: userData.email }
       } catch (err) {
         error.value = err.message || 'Đăng ký thất bại. Vui lòng thử lại.'
+        return { success: false }
+      } finally {
         isLoading.value = false
       }
     }

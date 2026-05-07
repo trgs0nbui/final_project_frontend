@@ -23,6 +23,18 @@ const routes = [
     component: () => import('@/views/auth/RegisterView.vue'),
     meta: { title: 'Đăng ký' },
   },
+  {
+    path: '/verify-email',
+    name: 'verify-email',
+    component: () => import('@/views/auth/VerifyEmailView.vue'),
+    meta: { title: 'Xác thực email' },
+  },
+  {
+    path: '/verify-email/pending',
+    name: 'verify-email-pending',
+    component: () => import('@/views/auth/PendingVerificationView.vue'),
+    meta: { title: 'Kiểm tra email của bạn' },
+  },
 
   // ── Protected routes ─────────────────────────────────────────────────────
   {
@@ -126,8 +138,11 @@ router.beforeEach((to) => {
     return { name: 'login' }
   }
 
-  // 2. Auth-only pages (login / register) — user already logged in
-  if ((to.name === 'login' || to.name === 'register') && isAuthenticated) {
+  // 2. Auth-only pages (login / register / verify) — user already logged in
+  if (
+    (to.name === 'login' || to.name === 'register') &&
+    isAuthenticated
+  ) {
     return { name: 'dashboard' }
   }
 
